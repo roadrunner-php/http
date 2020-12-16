@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
 
+use Spiral\RoadRunner\WorkerAwareInterface;
+
 interface HttpWorkerInterface extends WorkerAwareInterface
 {
     /**

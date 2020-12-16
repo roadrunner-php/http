@@ -10,6 +10,7 @@ namespace Spiral\RoadRunner\Http;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Spiral\RoadRunner\WorkerAwareInterface;
 
 interface PSR7WorkerInterface extends WorkerAwareInterface
 {
