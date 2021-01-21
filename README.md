@@ -38,7 +38,7 @@ $ composer require spiral/roadrunner-http nyholm/psr7
 $ vendor/bin/rr get-binary
 ```
 
-> You can use any PSR-17 compatible implementation.
+> You can use any [PSR-17 compatible implementation](https://github.com/search?q=psr-17).
 
 Example:
 -------
