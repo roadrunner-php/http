@@ -21,16 +21,16 @@ use Spiral\RoadRunner\WorkerInterface;
  * @psalm-import-type CookiesList from Request
  *
  * @psalm-type RequestContext = array {
- *      remoteAddr?:    string,
- *      protocol?:      string,
- *      method?:        string,
- *      uri?:           string,
- *      attributes?:    AttributesList,
- *      headers?:       HeadersList,
- *      cookies?:       CookiesList,
- *      uploads?:       UploadedFilesList|null,
- *      rawQuery?:      string,
- *      parsed?:        string|null
+ *      remoteAddr: string,
+ *      protocol:   string,
+ *      method:     string,
+ *      uri:        string,
+ *      attributes: AttributesList,
+ *      headers:    HeadersList,
+ *      cookies:    CookiesList,
+ *      uploads:    UploadedFilesList|null,
+ *      rawQuery:   string,
+ *      parsed:     bool
  * }
  *
  * @see Request
@@ -113,17 +113,10 @@ class HttpWorker implements HttpWorkerInterface
      * @param RequestContext $context
      *
      * @psalm-suppress InaccessibleProperty
-     * @psalm-suppress PossiblyUndefinedArrayOffset
      * @psalm-suppress MixedPropertyTypeCoercion
      */
     private function hydrateRequest(Request $request, array $context): void
     {
-        assert(\is_string($context['remoteAddr'] ?? null), 'Missing remote address context argument');
-        assert(\is_string($context['protocol'] ?? null), 'Missing protocol context argument');
-        assert(\is_string($context['method'] ?? null), 'Missing method context argument');
-        assert(\is_string($context['uri'] ?? null), 'Missing uri context argument');
-        assert(\is_string($context['rawQuery'] ?? null), 'Missing rawQuery context argument');
-
         $request->remoteAddr = $context['remoteAddr'];
         $request->protocol = $context['protocol'];
         $request->method = $context['method'];
