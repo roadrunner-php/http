@@ -17,11 +17,11 @@ use JetBrains\PhpStorm\Immutable;
  * @psalm-immutable
  *
  * @psalm-type UploadedFile = array {
- *      error: positive-int|0,
- *      name: string,
- *      tmpName: string,
- *      size: positive-int|0,
- *      mime: string
+ *      name:       string,
+ *      error:      positive-int|0,
+ *      tmpName:    string,
+ *      size:       positive-int|0,
+ *      mime:       string
  * }
  *
  * @psalm-type HeadersList = array<string, array<array-key, string>>
