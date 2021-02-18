@@ -1,7 +1,10 @@
 <?php
 
 /**
- * High-performance PHP process supervisor and load balancer written in Go. Http core.
+ * This file is part of RoadRunner package.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 declare(strict_types=1);
@@ -18,25 +21,47 @@ use Spiral\RoadRunner\WorkerInterface;
 
 /**
  * Manages PSR-7 request and response.
+ *
+ * @psalm-import-type UploadedFile from Request
+ * @psalm-import-type UploadedFilesList from Request
  */
-class PSR7Worker
+class PSR7Worker implements PSR7WorkerInterface
 {
-    private HttpWorker                    $httpWorker;
-    private ServerRequestFactoryInterface $requestFactory;
-    private StreamFactoryInterface        $streamFactory;
-    private UploadedFileFactoryInterface  $uploadsFactory;
-
-    /** @var mixed[] */
-    private array $originalServer = [];
-
-    /** @var string[] Valid values for HTTP protocol version */
-    private static array $allowedVersions = ['1.0', '1.1', '2',];
+    /**
+     * @var HttpWorker
+     */
+    private HttpWorker $httpWorker;
 
     /**
-     * @param WorkerInterface               $worker
+     * @var ServerRequestFactoryInterface
+     */
+    private ServerRequestFactoryInterface $requestFactory;
+
+    /**
+     * @var StreamFactoryInterface
+     */
+    private StreamFactoryInterface $streamFactory;
+
+    /**
+     * @var UploadedFileFactoryInterface
+     */
+    private UploadedFileFactoryInterface $uploadsFactory;
+
+    /**
+     * @var array
+     */
+    private array $originalServer;
+
+    /**
+     * @var string[] Valid values for HTTP protocol version
+     */
+    private static array $allowedVersions = ['1.0', '1.1', '2'];
+
+    /**
+     * @param WorkerInterface $worker
      * @param ServerRequestFactoryInterface $requestFactory
-     * @param StreamFactoryInterface        $streamFactory
-     * @param UploadedFileFactoryInterface  $uploadsFactory
+     * @param StreamFactoryInterface $streamFactory
+     * @param UploadedFileFactoryInterface $uploadsFactory
      */
     public function __construct(
         WorkerInterface $worker,
@@ -61,6 +86,7 @@ class PSR7Worker
 
     /**
      * @return ServerRequestInterface|null
+     * @throws \JsonException
      */
     public function waitRequest(): ?ServerRequestInterface
     {
@@ -78,12 +104,13 @@ class PSR7Worker
      * Send response to the application server.
      *
      * @param ResponseInterface $response
+     * @throws \JsonException
      */
     public function respond(ResponseInterface $response): void
     {
         $this->httpWorker->respond(
             $response->getStatusCode(),
-            $response->getBody()->__toString(),
+            (string)$response->getBody(),
             $response->getHeaders()
         );
     }
@@ -93,25 +120,25 @@ class PSR7Worker
      * request-time and other values.
      *
      * @param Request $request
-     * @return mixed[]
+     * @return non-empty-array<array-key|string, mixed|string>
      */
     protected function configureServer(Request $request): array
     {
         $server = $this->originalServer;
 
         $server['REQUEST_URI'] = $request->uri;
-        $server['REQUEST_TIME'] = time();
-        $server['REQUEST_TIME_FLOAT'] = microtime(true);
+        $server['REQUEST_TIME'] = $this->timeInt();
+        $server['REQUEST_TIME_FLOAT'] = $this->timeFloat();
         $server['REMOTE_ADDR'] = $request->getRemoteAddr();
         $server['REQUEST_METHOD'] = $request->method;
 
         $server['HTTP_USER_AGENT'] = '';
         foreach ($request->headers as $key => $value) {
-            $key = strtoupper(str_replace('-', '_', $key));
+            $key = \strtoupper(\str_replace('-', '_', $key));
             if (\in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'])) {
-                $server[$key] = implode(', ', $value);
+                $server[$key] = \implode(', ', $value);
             } else {
-                $server['HTTP_' . $key] = implode(', ', $value);
+                $server['HTTP_' . $key] = \implode(', ', $value);
             }
         }
 
@@ -119,25 +146,43 @@ class PSR7Worker
     }
 
     /**
+     * @return int
+     */
+    protected function timeInt(): int
+    {
+        return \time();
+    }
+
+    /**
+     * @return float
+     */
+    protected function timeFloat(): float
+    {
+        return \microtime(true);
+    }
+
+    /**
      * @param Request $httpRequest
-     * @param array   $server
+     * @param array $server
      * @return ServerRequestInterface
+     * @throws \JsonException
      */
     protected function mapRequest(Request $httpRequest, array $server): ServerRequestInterface
     {
         $request = $this->requestFactory->createServerRequest(
             $httpRequest->method,
             $httpRequest->uri,
-            $_SERVER
+            $server
         );
-
 
         $request = $request
             ->withProtocolVersion(static::fetchProtocolVersion($httpRequest->protocol))
             ->withCookieParams($httpRequest->cookies)
             ->withQueryParams($httpRequest->query)
-            ->withUploadedFiles($this->wrapUploads($httpRequest->uploads));
+            ->withUploadedFiles($this->wrapUploads($httpRequest->uploads))
+        ;
 
+        /** @psalm-suppress MixedAssignment */
         foreach ($httpRequest->attributes as $name => $value) {
             $request = $request->withAttribute($name, $value);
         }
@@ -150,7 +195,7 @@ class PSR7Worker
             return $request->withParsedBody($httpRequest->getParsedBody());
         }
 
-        if ($httpRequest->body !== null) {
+        if ($httpRequest->body) {
             return $request->withBody($this->streamFactory->createStream($httpRequest->body));
         }
 
@@ -160,30 +205,32 @@ class PSR7Worker
     /**
      * Wraps all uploaded files with UploadedFile.
      *
-     * @param array[] $files
+     * @param UploadedFilesList $files
      * @return UploadedFileInterface[]|mixed[]
      */
     protected function wrapUploads(array $files): array
     {
         $result = [];
-        foreach ($files as $index => $f) {
-            if (!isset($f['name'])) {
-                $result[$index] = $this->wrapUploads($f);
+
+        foreach ($files as $index => $file) {
+            if (! isset($file['name'])) {
+                /** @psalm-var UploadedFilesList $file */
+                $result[$index] = $this->wrapUploads($file);
                 continue;
             }
 
-            if (UPLOAD_ERR_OK === $f['error']) {
-                $stream = $this->streamFactory->createStreamFromFile($f['tmpName']);
+            if (\UPLOAD_ERR_OK === $file['error']) {
+                $stream = $this->streamFactory->createStreamFromFile($file['tmpName']);
             } else {
                 $stream = $this->streamFactory->createStream();
             }
 
             $result[$index] = $this->uploadsFactory->createUploadedFile(
                 $stream,
-                $f['size'],
-                $f['error'],
-                $f['name'],
-                $f['mime']
+                $file['size'],
+                $file['error'],
+                $file['name'],
+                $file['mime']
             );
         }
 
@@ -198,14 +245,14 @@ class PSR7Worker
      */
     private static function fetchProtocolVersion(string $version): string
     {
-        $v = substr($version, 5);
+        $v = \substr($version, 5);
 
         if ($v === '2.0') {
             return '2';
         }
 
         // Fallback for values outside of valid protocol versions
-        if (!in_array($v, static::$allowedVersions, true)) {
+        if (! \in_array($v, static::$allowedVersions, true)) {
             return '1.1';
         }
 
