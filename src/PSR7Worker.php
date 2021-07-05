@@ -192,7 +192,7 @@ class PSR7Worker implements PSR7WorkerInterface
         }
 
         if ($httpRequest->parsed) {
-            return $request->withParsedBody($httpRequest->getParsedBody());
+            $request = $request->withParsedBody($httpRequest->getParsedBody());
         }
 
         if ($httpRequest->body) {
