@@ -195,7 +195,7 @@ class PSR7Worker implements PSR7WorkerInterface
             $request = $request->withParsedBody($httpRequest->getParsedBody());
         }
 
-        if ($httpRequest->body) {
+        if ($httpRequest->body !== '') {
             return $request->withBody($this->streamFactory->createStream($httpRequest->body));
         }
 
