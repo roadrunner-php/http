@@ -134,7 +134,7 @@ class PSR7Worker implements PSR7WorkerInterface
 
         $server['HTTP_USER_AGENT'] = '';
         foreach ($request->headers as $key => $value) {
-            $key = \strtoupper(\str_replace('-', '_', $key));
+            $key = \strtoupper(\str_replace('-', '_', (string)$key));
             if (\in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'])) {
                 $server[$key] = \implode(', ', $value);
             } else {
