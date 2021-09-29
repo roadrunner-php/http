@@ -188,12 +188,7 @@ class PSR7Worker implements PSR7WorkerInterface
         }
 
         foreach ($httpRequest->headers as $name => $value) {
-            try {
-                $request = $request->withHeader($name, $value);
-            } catch (\InvalidArgumentException $e) {
-                // ignore invalid header names or values (otherwise, the worker will be crashed)
-                // @see: Nyholm/psr7 <https://git.io/JzjgJ>
-            }
+            $request = $request->withHeader($name, $value);
         }
 
         if ($httpRequest->parsed) {

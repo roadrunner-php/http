@@ -124,9 +124,27 @@ class HttpWorker implements HttpWorkerInterface
         \parse_str($context['rawQuery'], $request->query);
 
         $request->attributes = (array)($context['attributes'] ?? []);
-        $request->headers = (array)($context['headers'] ?? []);
+        $request->headers = $this->filterHeaders((array)($context['headers'] ?? []));
         $request->cookies = (array)($context['cookies'] ?? []);
         $request->uploads = (array)($context['uploads'] ?? []);
         $request->parsed = (bool)$context['parsed'];
+    }
+
+    /**
+     * @param array<mixed, mixed> $headers
+     *
+     * @return array<string, mixed>
+     */
+    private function filterHeaders(array $headers): array
+    {
+        foreach ($headers as $key => $_) {
+            if (!\is_string($key) || $key === '') {
+                // ignore invalid header names or values (otherwise, the worker will be crashed)
+                // @see: <https://git.io/JzjgJ>
+                unset($headers[$key]);
+            }
+        }
+
+        return $headers;
     }
 }
