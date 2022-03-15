@@ -11,10 +11,12 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
 
+use Generator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Spiral\RoadRunner\WorkerInterface;
@@ -27,6 +29,8 @@ use Spiral\RoadRunner\WorkerInterface;
  */
 class PSR7Worker implements PSR7WorkerInterface
 {
+    protected const CHUNK_SIZE = 4 * 1024;
+
     /**
      * @var HttpWorker
      */
@@ -108,11 +112,34 @@ class PSR7Worker implements PSR7WorkerInterface
      */
     public function respond(ResponseInterface $response): void
     {
-        $this->httpWorker->respond(
+        $this->httpWorker->respondStream(
             $response->getStatusCode(),
-            (string)$response->getBody(),
+            $this->streamToGenerator($response->getBody()),
             $response->getHeaders()
         );
+    }
+
+    private function streamToGenerator(StreamInterface $stream): Generator
+    {
+        $stream->rewind();
+        $size = $stream->getSize();
+        if ($size !== null && $size < self::CHUNK_SIZE) {
+            return (string)$stream;
+        }
+        $sum = 0;
+        while (!$stream->eof()) {
+            if ($size !== null && ($size - $sum) < self::CHUNK_SIZE) {
+                $toRead = $size - $sum;
+                $chunk = $stream->read($toRead);
+                if (\strlen($chunk) === $toRead) {
+                    return $chunk;
+                }
+            } else {
+                $chunk = $stream->read(self::CHUNK_SIZE);
+            }
+            $sum += \strlen($chunk);
+            yield $chunk;
+        }
     }
 
     /**

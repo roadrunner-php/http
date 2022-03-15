@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
 
+use Generator;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\WorkerInterface;
 
@@ -35,7 +36,7 @@ use Spiral\RoadRunner\WorkerInterface;
  *
  * @see Request
  */
-class HttpWorker implements HttpWorkerInterface
+class HttpWorker implements HttpWorkerInterface, StreamedHttpWorkerInterface
 {
     /**
      * @var WorkerInterface
@@ -83,12 +84,32 @@ class HttpWorker implements HttpWorkerInterface
      */
     public function respond(int $status, string $body, array $headers = []): void
     {
-        $headers = (string)\json_encode([
+        $head = (string)\json_encode([
             'status'  => $status,
             'headers' => $headers ?: (object)[],
         ], \JSON_THROW_ON_ERROR);
 
-        $this->worker->respond(new Payload($body, $headers));
+        $this->worker->respond(new Payload($body, $head));
+    }
+
+    public function respondStream(int $status, Generator $body, array $headers = [], array $trailed = []): void
+    {
+        $head = (string)\json_encode([
+            'status'  => $status,
+            'headers' => $headers ?: (object)[],
+        ], \JSON_THROW_ON_ERROR);
+
+        do {
+            if (!$body->valid()) {
+                $content = (string)$body->getReturn();
+                $this->worker->respond(new Payload($content, $head, false));
+                break;
+            }
+            $content = $body->current();
+            $this->worker->respond(new Payload($content, $head, true));
+            $body->next();
+            $head = null;
+        } while (true);
     }
 
     /**
