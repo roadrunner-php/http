@@ -29,7 +29,7 @@ use Spiral\RoadRunner\WorkerInterface;
  */
 class PSR7Worker implements PSR7WorkerInterface
 {
-    protected const CHUNK_SIZE = 4 * 1024;
+    public static int $chunk_size = 4 * 1024;
 
     /**
      * @var HttpWorker
@@ -123,19 +123,19 @@ class PSR7Worker implements PSR7WorkerInterface
     {
         $stream->rewind();
         $size = $stream->getSize();
-        if ($size !== null && $size < self::CHUNK_SIZE) {
+        if ($size !== null && $size < self::$chunk_size) {
             return (string)$stream;
         }
         $sum = 0;
         while (!$stream->eof()) {
-            if ($size !== null && ($size - $sum) < self::CHUNK_SIZE) {
+            if ($size !== null && ($size - $sum) < self::$chunk_size) {
                 $toRead = $size - $sum;
                 $chunk = $stream->read($toRead);
                 if (\strlen($chunk) === $toRead) {
                     return $chunk;
                 }
             } else {
-                $chunk = $stream->read(self::CHUNK_SIZE);
+                $chunk = $stream->read(self::$chunk_size);
             }
             $sum += \strlen($chunk);
             yield $chunk;
