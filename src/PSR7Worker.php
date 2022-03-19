@@ -131,12 +131,9 @@ class PSR7Worker implements PSR7WorkerInterface
             if ($size === null) {
                 $chunk = $stream->read(self::$chunk_size);
             } else {
-                $delta = $size - $sum;
-                if ($delta === 0) {
-                    return '';
-                }
-                $chunk = $stream->read($delta);
-                if ($delta < self::$chunk_size && \strlen($chunk) === $delta) {
+                $left = $size - $sum;
+                $chunk = $stream->read(\min(self::$chunk_size, $left));
+                if ($left <= self::$chunk_size && \strlen($chunk) === $left) {
                     return $chunk;
                 }
             }
