@@ -14,6 +14,7 @@ namespace Spiral\RoadRunner\Http;
 use Generator;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\WorkerInterface;
+use Stringable;
 
 /**
  * @psalm-import-type HeadersList from Request
@@ -36,7 +37,7 @@ use Spiral\RoadRunner\WorkerInterface;
  *
  * @see Request
  */
-class HttpWorker implements HttpWorkerInterface, StreamedHttpWorkerInterface
+class HttpWorker implements HttpWorkerInterface
 {
     /**
      * @var WorkerInterface
@@ -92,7 +93,14 @@ class HttpWorker implements HttpWorkerInterface, StreamedHttpWorkerInterface
         $this->worker->respond(new Payload($body, $head));
     }
 
-    public function respondStream(int $status, Generator $body, array $headers = [], array $trailed = []): void
+    /**
+     * Respond data using Streamed Output
+     *
+     * @param Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null> $body Body generator.
+     *        Each yielded value will be sent as a separated stream chunk.
+     *        Returned value will be sent as a last stream package.
+     */
+    public function respondStream(int $status, Generator $body, array $headers = []): void
     {
         $head = (string)\json_encode([
             'status'  => $status,
@@ -102,11 +110,11 @@ class HttpWorker implements HttpWorkerInterface, StreamedHttpWorkerInterface
         do {
             if (!$body->valid()) {
                 $content = (string)$body->getReturn();
-                $this->worker->respond(new Payload($content, $head, false));
+                $this->worker->respond(new Payload($content, $head, true));
                 break;
             }
-            $content = $body->current();
-            $this->worker->respond(new Payload($content, $head, true));
+            $content = (string)$body->current();
+            $this->worker->respond(new Payload($content, $head, false));
             $body->next();
             $head = null;
         } while (true);
@@ -152,7 +160,7 @@ class HttpWorker implements HttpWorkerInterface, StreamedHttpWorkerInterface
     }
 
     /**
-     * @param array<mixed, mixed> $headers
+     * Remove all non-string and empty-string keys
      *
      * @return array<string, mixed>
      */
@@ -165,7 +173,7 @@ class HttpWorker implements HttpWorkerInterface, StreamedHttpWorkerInterface
                 unset($headers[$key]);
             }
         }
-
+        /** @var array<string, mixed> $headers */
         return $headers;
     }
 }
