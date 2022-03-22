@@ -11,13 +11,16 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
 
+use Generator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Spiral\RoadRunner\WorkerInterface;
+use Stringable;
 
 /**
  * Manages PSR-7 request and response.
@@ -27,6 +30,8 @@ use Spiral\RoadRunner\WorkerInterface;
  */
 class PSR7Worker implements PSR7WorkerInterface
 {
+    public int $chunk_size = 8 * 1024;
+
     /**
      * @var HttpWorker
      */
@@ -108,11 +113,38 @@ class PSR7Worker implements PSR7WorkerInterface
      */
     public function respond(ResponseInterface $response): void
     {
-        $this->httpWorker->respond(
+        $this->httpWorker->respondStream(
             $response->getStatusCode(),
-            (string)$response->getBody(),
+            $this->streamToGenerator($response->getBody()),
             $response->getHeaders()
         );
+    }
+
+    /**
+     * @return Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null> Compatible
+     *         with {@see \Spiral\RoadRunner\Http\HttpWorker::respondStream()}.
+     */
+    private function streamToGenerator(StreamInterface $stream): Generator
+    {
+        $stream->rewind();
+        $size = $stream->getSize();
+        if ($size !== null && $size < $this->chunk_size) {
+            return (string)$stream;
+        }
+        $sum = 0;
+        while (!$stream->eof()) {
+            if ($size === null) {
+                $chunk = $stream->read($this->chunk_size);
+            } else {
+                $left = $size - $sum;
+                $chunk = $stream->read(\min($this->chunk_size, $left));
+                if ($left <= $this->chunk_size && \strlen($chunk) === $left) {
+                    return $chunk;
+                }
+            }
+            $sum += \strlen($chunk);
+            yield $chunk;
+        }
     }
 
     /**

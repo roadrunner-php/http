@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
 
+use Generator;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\WorkerInterface;
+use Stringable;
 
 /**
  * @psalm-import-type HeadersList from Request
@@ -83,12 +85,39 @@ class HttpWorker implements HttpWorkerInterface
      */
     public function respond(int $status, string $body, array $headers = []): void
     {
-        $headers = (string)\json_encode([
+        $head = (string)\json_encode([
             'status'  => $status,
             'headers' => $headers ?: (object)[],
         ], \JSON_THROW_ON_ERROR);
 
-        $this->worker->respond(new Payload($body, $headers));
+        $this->worker->respond(new Payload($body, $head));
+    }
+
+    /**
+     * Respond data using Streamed Output
+     *
+     * @param Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null> $body Body generator.
+     *        Each yielded value will be sent as a separated stream chunk.
+     *        Returned value will be sent as a last stream package.
+     */
+    public function respondStream(int $status, Generator $body, array $headers = []): void
+    {
+        $head = (string)\json_encode([
+            'status'  => $status,
+            'headers' => $headers ?: (object)[],
+        ], \JSON_THROW_ON_ERROR);
+
+        do {
+            if (!$body->valid()) {
+                $content = (string)$body->getReturn();
+                $this->worker->respond(new Payload($content, $head, true));
+                break;
+            }
+            $content = (string)$body->current();
+            $this->worker->respond(new Payload($content, $head, false));
+            $body->next();
+            $head = null;
+        } while (true);
     }
 
     /**
@@ -131,7 +160,7 @@ class HttpWorker implements HttpWorkerInterface
     }
 
     /**
-     * @param array<mixed, mixed> $headers
+     * Remove all non-string and empty-string keys
      *
      * @return array<string, mixed>
      */
@@ -144,7 +173,7 @@ class HttpWorker implements HttpWorkerInterface
                 unset($headers[$key]);
             }
         }
-
+        /** @var array<string, mixed> $headers */
         return $headers;
     }
 }

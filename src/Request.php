@@ -36,7 +36,6 @@ final class Request
     /**
      * @var string
      */
-
     public string $remoteAddr = '127.0.0.1';
 
     /**
