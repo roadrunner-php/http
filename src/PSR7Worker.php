@@ -20,6 +20,7 @@ use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Spiral\RoadRunner\WorkerInterface;
+use Stringable;
 
 /**
  * Manages PSR-7 request and response.
@@ -29,7 +30,7 @@ use Spiral\RoadRunner\WorkerInterface;
  */
 class PSR7Worker implements PSR7WorkerInterface
 {
-    public static int $chunk_size = 4 * 1024;
+    public int $chunk_size = 8 * 1024;
 
     /**
      * @var HttpWorker
@@ -119,21 +120,25 @@ class PSR7Worker implements PSR7WorkerInterface
         );
     }
 
+    /**
+     * @return Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null> Compatible
+     *         with {@see \Spiral\RoadRunner\Http\HttpWorker::respondStream()}.
+     */
     private function streamToGenerator(StreamInterface $stream): Generator
     {
         $stream->rewind();
         $size = $stream->getSize();
-        if ($size !== null && $size < self::$chunk_size) {
+        if ($size !== null && $size < $this->chunk_size) {
             return (string)$stream;
         }
         $sum = 0;
         while (!$stream->eof()) {
             if ($size === null) {
-                $chunk = $stream->read(self::$chunk_size);
+                $chunk = $stream->read($this->chunk_size);
             } else {
                 $left = $size - $sum;
-                $chunk = $stream->read(\min(self::$chunk_size, $left));
-                if ($left <= self::$chunk_size && \strlen($chunk) === $left) {
+                $chunk = $stream->read(\min($this->chunk_size, $left));
+                if ($left <= $this->chunk_size && \strlen($chunk) === $left) {
                     return $chunk;
                 }
             }
