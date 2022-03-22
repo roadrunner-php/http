@@ -30,7 +30,11 @@ use Stringable;
  */
 class PSR7Worker implements PSR7WorkerInterface
 {
-    public int $chunk_size = 8 * 1024;
+    /**
+     * @var int Preferred chunk size for streaming output.
+     *      if not greater than 0, then streaming response is turned off
+     */
+    public int $chunkSize = 0;
 
     /**
      * @var HttpWorker
@@ -113,11 +117,18 @@ class PSR7Worker implements PSR7WorkerInterface
      */
     public function respond(ResponseInterface $response): void
     {
-        $this->httpWorker->respondStream(
-            $response->getStatusCode(),
-            $this->streamToGenerator($response->getBody()),
-            $response->getHeaders()
-        );
+        if ($this->chunkSize > 0) {
+            $this->httpWorker->respondStream(
+                $response->getStatusCode(),
+                $this->streamToGenerator($response->getBody()),
+                $response->getHeaders()
+            );
+        } else {
+            $this->httpWorker->respond(
+                $response->getStatusCode(),
+                (string)$response->getBody(),
+                $response->getHeaders());
+        }
     }
 
     /**
@@ -128,17 +139,17 @@ class PSR7Worker implements PSR7WorkerInterface
     {
         $stream->rewind();
         $size = $stream->getSize();
-        if ($size !== null && $size < $this->chunk_size) {
+        if ($size !== null && $size < $this->chunkSize) {
             return (string)$stream;
         }
         $sum = 0;
         while (!$stream->eof()) {
             if ($size === null) {
-                $chunk = $stream->read($this->chunk_size);
+                $chunk = $stream->read($this->chunkSize);
             } else {
                 $left = $size - $sum;
-                $chunk = $stream->read(\min($this->chunk_size, $left));
-                if ($left <= $this->chunk_size && \strlen($chunk) === $left) {
+                $chunk = $stream->read(\min($this->chunkSize, $left));
+                if ($left <= $this->chunkSize && \strlen($chunk) === $left) {
                     return $chunk;
                 }
             }
