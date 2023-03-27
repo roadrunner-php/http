@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Spiral\RoadRunner\Http;
 
 use Generator;
+use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\WorkerInterface;
 use Stringable;
@@ -114,6 +115,10 @@ class HttpWorker implements HttpWorkerInterface
                 break;
             }
             $content = (string)$body->current();
+            if ($this->worker->getPayload(StreamStop::class) !== null) {
+                $body->throw(new \RuntimeException('Stream has been stopped by the client.'));
+                return;
+            }
             $this->worker->respond(new Payload($content, $head, false));
             $body->next();
             $head = null;
