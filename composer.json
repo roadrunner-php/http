@@ -19,7 +19,7 @@
         "psr/http-factory": "^1.0.1",
         "psr/http-message": "^1.0.1",
         "spiral/roadrunner": "^2023.1",
-        "spiral/roadrunner-worker": "^2.2.0"
+        "spiral/roadrunner-worker": "^3.0"
     },
     "require-dev": {
         "nyholm/psr7": "^1.3",
