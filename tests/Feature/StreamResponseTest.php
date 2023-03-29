@@ -55,7 +55,7 @@ class StreamResponseTest extends TestCase
 
         $chunks = ['Hel', 'lo,', ' Wo', 'rld', '!'];
         ServerRunner::getBuffer();
-        $httpWorker->respondStream(
+        $httpWorker->respond(
             200,
             (function () use ($chunks) {
                 yield from $chunks;
@@ -73,7 +73,7 @@ class StreamResponseTest extends TestCase
         // Flush buffer
         ServerRunner::getBuffer();
 
-        $httpWorker->respondStream(
+        $httpWorker->respond(
             200,
             (function () {
                 yield 'Hel';

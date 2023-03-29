@@ -17,15 +17,10 @@ use Spiral\RoadRunner\WorkerAwareInterface;
 
 interface PSR7WorkerInterface extends WorkerAwareInterface
 {
-    /**
-     * @return ServerRequestInterface|null
-     */
     public function waitRequest(): ?ServerRequestInterface;
 
     /**
      * Send response to the application server.
-     *
-     * @param ResponseInterface $response
      */
     public function respond(ResponseInterface $response): void;
 }

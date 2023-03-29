@@ -33,6 +33,7 @@ class PSR7Worker implements PSR7WorkerInterface
     /**
      * @var int Preferred chunk size for streaming output.
      *      if not greater than 0, then streaming response is turned off
+     * @internal
      */
     public int $chunkSize = 0;
 
@@ -117,18 +118,13 @@ class PSR7Worker implements PSR7WorkerInterface
      */
     public function respond(ResponseInterface $response): void
     {
-        if ($this->chunkSize > 0) {
-            $this->httpWorker->respondStream(
-                $response->getStatusCode(),
-                $this->streamToGenerator($response->getBody()),
-                $response->getHeaders()
-            );
-        } else {
-            $this->httpWorker->respond(
-                $response->getStatusCode(),
-                (string)$response->getBody(),
-                $response->getHeaders());
-        }
+        $this->httpWorker->respond(
+            $response->getStatusCode(),
+            $this->chunkSize > 0
+                ? $this->streamToGenerator($response->getBody())
+                : (string)$response->getBody(),
+            $response->getHeaders()
+        );
     }
 
     /**

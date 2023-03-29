@@ -42,7 +42,7 @@ class StreamResponseTest extends TestCase
     {
         $httpWorker = $this->makeHttpWorker();
 
-        $httpWorker->respondStream(200, (function () {
+        $httpWorker->respond(200, (function () {
             yield 'Hel';
             yield 'lo,';
             yield ' Wo';
@@ -58,7 +58,7 @@ class StreamResponseTest extends TestCase
     {
         $httpWorker = $this->makeHttpWorker();
 
-        $httpWorker->respondStream(200, (function () {
+        $httpWorker->respond(200, (function () {
             yield 'Hel';
             yield 'lo,';
             $this->getRelay()->addStopStreamFrame();

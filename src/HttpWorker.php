@@ -15,7 +15,6 @@ use Generator;
 use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\WorkerInterface;
-use Stringable;
 
 /**
  * @psalm-import-type HeadersList from Request
@@ -40,29 +39,17 @@ use Stringable;
  */
 class HttpWorker implements HttpWorkerInterface
 {
-    /**
-     * @var WorkerInterface
-     */
-    private WorkerInterface $worker;
-
-    /**
-     * @param WorkerInterface $worker
-     */
-    public function __construct(WorkerInterface $worker)
-    {
-        $this->worker = $worker;
+    public function __construct(
+        private readonly WorkerInterface $worker,
+    ) {
     }
 
-    /**
-     * @return WorkerInterface
-     */
     public function getWorker(): WorkerInterface
     {
         return $this->worker;
     }
 
     /**
-     * {@inheritDoc}
      * @throws \JsonException
      */
     public function waitRequest(): ?Request
@@ -81,11 +68,15 @@ class HttpWorker implements HttpWorkerInterface
     }
 
     /**
-     * {@inheritDoc}
      * @throws \JsonException
      */
-    public function respond(int $status, string $body, array $headers = []): void
+    public function respond(int $status, string|Generator $body, array $headers = []): void
     {
+        if ($body instanceof Generator) {
+            $this->respondStream($status, $body, $headers);
+            return;
+        }
+
         $head = (string)\json_encode([
             'status'  => $status,
             'headers' => $headers ?: (object)[],
@@ -94,14 +85,7 @@ class HttpWorker implements HttpWorkerInterface
         $this->worker->respond(new Payload($body, $head));
     }
 
-    /**
-     * Respond data using Streamed Output
-     *
-     * @param Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null> $body Body generator.
-     *        Each yielded value will be sent as a separated stream chunk.
-     *        Returned value will be sent as a last stream package.
-     */
-    public function respondStream(int $status, Generator $body, array $headers = []): void
+    private function respondStream(int $status, Generator $body, array $headers = []): void
     {
         $head = (string)\json_encode([
             'status'  => $status,
@@ -126,50 +110,33 @@ class HttpWorker implements HttpWorkerInterface
     }
 
     /**
-     * @param string $body
      * @param RequestContext $context
-     * @return Request
-     *
-     * @psalm-suppress InaccessibleProperty
      */
     private function createRequest(string $body, array $context): Request
     {
-        $request = new Request();
-        $request->body = $body;
-
-        $this->hydrateRequest($request, $context);
-
-        return $request;
-    }
-
-    /**
-     * @param Request $request
-     * @param RequestContext $context
-     *
-     * @psalm-suppress InaccessibleProperty
-     * @psalm-suppress MixedPropertyTypeCoercion
-     */
-    private function hydrateRequest(Request $request, array $context): void
-    {
-        $request->remoteAddr = $context['remoteAddr'];
-        $request->protocol = $context['protocol'];
-        $request->method = $context['method'];
-        $request->uri = $context['uri'];
-        \parse_str($context['rawQuery'], $request->query);
-
-        $request->attributes = (array)($context['attributes'] ?? []);
-        $request->headers = $this->filterHeaders((array)($context['headers'] ?? []));
-        $request->cookies = (array)($context['cookies'] ?? []);
-        $request->uploads = (array)($context['uploads'] ?? []);
-        $request->parsed = (bool)$context['parsed'];
-
-        $request->attributes[Request::PARSED_BODY_ATTRIBUTE_NAME] = $request->parsed;
+        \parse_str($context['rawQuery'], $query);
+        return new Request(
+            remoteAddr: $context['remoteAddr'],
+            protocol: $context['protocol'],
+            method: $context['method'],
+            uri: $context['uri'],
+            headers: $this->filterHeaders((array)($context['headers'] ?? [])),
+            cookies: (array)($context['cookies'] ?? []),
+            uploads: (array)($context['uploads'] ?? []),
+            attributes: [
+                Request::PARSED_BODY_ATTRIBUTE_NAME => (bool)$context['parsed'],
+            ] + (array)($context['attributes'] ?? []),
+            query: $query,
+            body: $body,
+            parsed: (bool)$context['parsed'],
+        );
     }
 
     /**
      * Remove all non-string and empty-string keys
      *
-     * @return array<string, mixed>
+     * @param array<array-key, array<array-key, string>> $headers
+     * @return HeadersList
      */
     private function filterHeaders(array $headers): array
     {
@@ -180,7 +147,8 @@ class HttpWorker implements HttpWorkerInterface
                 unset($headers[$key]);
             }
         }
-        /** @var array<string, mixed> $headers */
+
+        /** @var HeadersList $headers */
         return $headers;
     }
 }
