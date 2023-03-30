@@ -16,10 +16,10 @@ use JetBrains\PhpStorm\Immutable;
 /**
  * @psalm-immutable
  *
- * @psalm-type UploadedFile = array {
- *      name:       string,
+ * @psalm-type UploadedFile = array{
+ *      name:       non-empty-string,
  *      error:      int<0, max>,
- *      tmpName:    string,
+ *      tmpName:    non-empty-string,
  *      size:       int<0, max>,
  *      mime:       string
  * }

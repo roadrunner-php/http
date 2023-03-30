@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Spiral\RoadRunner\Tests\Http\Feature;
 
 use PHPUnit\Framework\TestCase;
-use Spiral\Goridge\Frame;
 use Spiral\Goridge\SocketRelay;
 use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Payload;
@@ -92,6 +91,34 @@ class StreamResponseTest extends TestCase
 
         \usleep(100_000);
         self::assertSame(\implode("\n", ['Hel', 'lo,']), \trim(ServerRunner::getBuffer()));
+    }
+
+    /**
+     * StopStream should be ignored if stream is already ended.
+     */
+    public function testStopStreamAfterStreamEnd(): void
+    {
+        $httpWorker = $this->makeHttpWorker();
+
+        // Flush buffer
+        ServerRunner::getBuffer();
+
+        $httpWorker->respond(
+            200,
+            (function () {
+                yield 'Hello';
+                yield 'World!';
+            })(),
+        );
+
+        $this->assertFalse($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
+        $this->sendCommand(new StreamStop());
+
+
+        \usleep(200_000);
+        self::assertSame(\implode("\n", ['Hello', 'World!']), \trim(ServerRunner::getBuffer()));
+        $this->assertTrue($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
+        $this->assertFalse($this->getWorker()->hasPayload());
     }
 
     private function getRelay(): SocketRelay
