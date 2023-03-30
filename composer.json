@@ -9,10 +9,25 @@
             "email": "wolfy.jd@gmail.com"
         },
         {
+            "name": "Valery Piashchynski",
+            "homepage": "https://github.com/rustatian"
+        },
+        {
+            "name": "Aleksei Gagarin",
+            "homepage": "https://github.com/roxblnfk"
+        },
+        {
             "name": "RoadRunner Community",
             "homepage": "https://github.com/spiral/roadrunner/graphs/contributors"
         }
     ],
+    "homepage": "https://spiral.dev/",
+    "support": {
+        "docs": "https://roadrunner.dev/docs",
+        "issues": "https://github.com/roadrunner-server/roadrunner/issues",
+        "forum": "https://forum.roadrunner.dev/",
+        "chat": "https://discord.gg/V6EK4he"
+    },
     "require": {
         "php": ">=8.1",
         "ext-json": "*",
@@ -26,7 +41,7 @@
         "phpunit/phpunit": "^10.0",
         "jetbrains/phpstorm-attributes": "^1.0",
         "symfony/process": "^6.2",
-        "vimeo/psalm": "^5.8"
+        "vimeo/psalm": "^5.9"
     },
     "autoload": {
         "psr-4": {
@@ -38,6 +53,12 @@
             "Spiral\\RoadRunner\\Tests\\Http\\": "tests"
         }
     },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/roadrunner-server"
+        }
+    ],
     "scripts": {
         "analyze": "psalm"
     },
