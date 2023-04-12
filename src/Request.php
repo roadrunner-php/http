@@ -1,12 +1,5 @@
 <?php
 
-/**
- * This file is part of RoadRunner package.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
@@ -59,16 +52,12 @@ final class Request
     ) {
     }
 
-    /**
-     * @return string
-     */
     public function getRemoteAddr(): string
     {
         return (string)($this->attributes['ipAddress'] ?? $this->remoteAddr);
     }
 
     /**
-     * @return array|null
      * @throws \JsonException
      */
     public function getParsedBody(): ?array

@@ -15,3 +15,6 @@ clover*
 cover*
 .DS_Store
 *.cache
+
+.phpunit.cache/
+.phpunit.result.cache

@@ -113,8 +113,6 @@ class StreamResponseTest extends TestCase
 
         $this->assertFalse($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
         $this->sendCommand(new StreamStop());
-
-
         \usleep(200_000);
         self::assertSame(\implode("\n", ['Hello', 'World!']), \trim(ServerRunner::getBuffer()));
         $this->assertTrue($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
@@ -128,7 +126,7 @@ class StreamResponseTest extends TestCase
 
     private function getWorker(): Worker
     {
-        return $this->worker ??= new Worker($this->getRelay(), false);
+        return $this->worker ??= new Worker(relay: $this->getRelay(), interceptSideEffects: false);
     }
 
     private function makeHttpWorker(): HttpWorker
