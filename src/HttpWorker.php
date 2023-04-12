@@ -22,10 +22,10 @@ use Spiral\RoadRunner\WorkerInterface;
  * @psalm-import-type UploadedFilesList from Request
  * @psalm-import-type CookiesList from Request
  *
- * @psalm-type RequestContext = array {
- *      remoteAddr: string,
- *      protocol:   string,
- *      method:     string,
+ * @psalm-type RequestContext = array{
+ *      remoteAddr: non-empty-string,
+ *      protocol:   non-empty-string,
+ *      method:     non-empty-string,
  *      uri:        string,
  *      attributes: AttributesList,
  *      headers:    HeadersList,
