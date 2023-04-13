@@ -1,5 +1,20 @@
-# Dependency directories (remove the comment below to include it)
-# vendor/
-.idea
-vendor
+# Composer lock file
 composer.lock
+
+# IDEs
+/.idea
+/.vscode
+
+# Vendors
+/vendor
+**/vendor
+
+# Temp dirs & trash
+/tests/server*
+clover*
+cover*
+.DS_Store
+*.cache
+
+.phpunit.cache/
+.phpunit.result.cache

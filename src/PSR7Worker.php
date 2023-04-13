@@ -1,12 +1,5 @@
 <?php
 
-/**
- * This file is part of RoadRunner package.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
@@ -33,68 +26,35 @@ class PSR7Worker implements PSR7WorkerInterface
     /**
      * @var int Preferred chunk size for streaming output.
      *      if not greater than 0, then streaming response is turned off
+     * @internal
      */
     public int $chunkSize = 0;
 
-    /**
-     * @var HttpWorker
-     */
-    private HttpWorker $httpWorker;
+    private readonly HttpWorker $httpWorker;
 
-    /**
-     * @var ServerRequestFactoryInterface
-     */
-    private ServerRequestFactoryInterface $requestFactory;
-
-    /**
-     * @var StreamFactoryInterface
-     */
-    private StreamFactoryInterface $streamFactory;
-
-    /**
-     * @var UploadedFileFactoryInterface
-     */
-    private UploadedFileFactoryInterface $uploadsFactory;
-
-    /**
-     * @var array
-     */
-    private array $originalServer;
+    private readonly array $originalServer;
 
     /**
      * @var string[] Valid values for HTTP protocol version
      */
     private static array $allowedVersions = ['1.0', '1.1', '2'];
 
-    /**
-     * @param WorkerInterface $worker
-     * @param ServerRequestFactoryInterface $requestFactory
-     * @param StreamFactoryInterface $streamFactory
-     * @param UploadedFileFactoryInterface $uploadsFactory
-     */
     public function __construct(
         WorkerInterface $worker,
-        ServerRequestFactoryInterface $requestFactory,
-        StreamFactoryInterface $streamFactory,
-        UploadedFileFactoryInterface $uploadsFactory
+        private readonly ServerRequestFactoryInterface $requestFactory,
+        private readonly StreamFactoryInterface $streamFactory,
+        private readonly UploadedFileFactoryInterface $uploadsFactory,
     ) {
         $this->httpWorker = new HttpWorker($worker);
-        $this->requestFactory = $requestFactory;
-        $this->streamFactory = $streamFactory;
-        $this->uploadsFactory = $uploadsFactory;
         $this->originalServer = $_SERVER;
     }
 
-    /**
-     * @return WorkerInterface
-     */
     public function getWorker(): WorkerInterface
     {
         return $this->httpWorker->getWorker();
     }
 
     /**
-     * @return ServerRequestInterface|null
      * @throws \JsonException
      */
     public function waitRequest(): ?ServerRequestInterface
@@ -112,23 +72,17 @@ class PSR7Worker implements PSR7WorkerInterface
     /**
      * Send response to the application server.
      *
-     * @param ResponseInterface $response
      * @throws \JsonException
      */
     public function respond(ResponseInterface $response): void
     {
-        if ($this->chunkSize > 0) {
-            $this->httpWorker->respondStream(
-                $response->getStatusCode(),
-                $this->streamToGenerator($response->getBody()),
-                $response->getHeaders()
-            );
-        } else {
-            $this->httpWorker->respond(
-                $response->getStatusCode(),
-                (string)$response->getBody(),
-                $response->getHeaders());
-        }
+        $this->httpWorker->respond(
+            $response->getStatusCode(),
+            $this->chunkSize > 0
+                ? $this->streamToGenerator($response->getBody())
+                : (string)$response->getBody(),
+            $response->getHeaders()
+        );
     }
 
     /**
@@ -162,7 +116,6 @@ class PSR7Worker implements PSR7WorkerInterface
      * Returns altered copy of _SERVER variable. Sets ip-address,
      * request-time and other values.
      *
-     * @param Request $request
      * @return non-empty-array<array-key|string, mixed|string>
      */
     protected function configureServer(Request $request): array
@@ -177,7 +130,7 @@ class PSR7Worker implements PSR7WorkerInterface
 
         $server['HTTP_USER_AGENT'] = '';
         foreach ($request->headers as $key => $value) {
-            $key = \strtoupper(\str_replace('-', '_', (string)$key));
+            $key = \strtoupper(\str_replace('-', '_', $key));
             if (\in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'])) {
                 $server[$key] = \implode(', ', $value);
             } else {
@@ -188,26 +141,17 @@ class PSR7Worker implements PSR7WorkerInterface
         return $server;
     }
 
-    /**
-     * @return int
-     */
     protected function timeInt(): int
     {
         return \time();
     }
 
-    /**
-     * @return float
-     */
     protected function timeFloat(): float
     {
         return \microtime(true);
     }
 
     /**
-     * @param Request $httpRequest
-     * @param array $server
-     * @return ServerRequestInterface
      * @throws \JsonException
      */
     protected function mapRequest(Request $httpRequest, array $server): ServerRequestInterface
@@ -282,9 +226,6 @@ class PSR7Worker implements PSR7WorkerInterface
 
     /**
      * Normalize HTTP protocol version to valid values
-     *
-     * @param string $version
-     * @return string
      */
     private static function fetchProtocolVersion(string $version): string
     {
