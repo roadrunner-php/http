@@ -1,12 +1,5 @@
 <?php
 
-/**
- * This file is part of RoadRunner package.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
@@ -22,8 +15,6 @@ interface HttpWorkerInterface extends WorkerAwareInterface
 {
     /**
      * Wait for incoming http request.
-     *
-     * @return Request|null
      */
     public function waitRequest(): ?Request;
 

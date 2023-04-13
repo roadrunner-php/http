@@ -1,12 +1,5 @@
 <?php
 
-/**
- * This file is part of RoadRunner package.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
@@ -77,7 +70,7 @@ class HttpWorker implements HttpWorkerInterface
             return;
         }
 
-        $head = (string)\json_encode([
+        $head = \json_encode([
             'status'  => $status,
             'headers' => $headers ?: (object)[],
         ], \JSON_THROW_ON_ERROR);
@@ -87,7 +80,7 @@ class HttpWorker implements HttpWorkerInterface
 
     private function respondStream(int $status, Generator $body, array $headers = []): void
     {
-        $head = (string)\json_encode([
+        $head = \json_encode([
             'status'  => $status,
             'headers' => $headers ?: (object)[],
         ], \JSON_THROW_ON_ERROR);
@@ -124,11 +117,11 @@ class HttpWorker implements HttpWorkerInterface
             cookies: (array)($context['cookies'] ?? []),
             uploads: (array)($context['uploads'] ?? []),
             attributes: [
-                Request::PARSED_BODY_ATTRIBUTE_NAME => (bool)$context['parsed'],
+                Request::PARSED_BODY_ATTRIBUTE_NAME => $context['parsed'],
             ] + (array)($context['attributes'] ?? []),
             query: $query,
             body: $body,
-            parsed: (bool)$context['parsed'],
+            parsed: $context['parsed'],
         );
     }
 
