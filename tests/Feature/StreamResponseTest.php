@@ -6,6 +6,7 @@ namespace Spiral\RoadRunner\Tests\Http\Feature;
 
 use PHPUnit\Framework\TestCase;
 use Spiral\Goridge\SocketRelay;
+use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\Tests\Http\Server\Command\BaseCommand;
@@ -80,7 +81,7 @@ class StreamResponseTest extends TestCase
                 $this->sendCommand(new StreamStop());
                 try {
                     yield ' Wo';
-                } catch (\Throwable $e) {
+                } catch (StreamStoppedException $e) {
                     return;
                 }
                 yield 'rld';

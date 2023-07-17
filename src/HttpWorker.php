@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Spiral\RoadRunner\Http;
 
 use Generator;
+use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\WorkerInterface;
@@ -93,7 +94,7 @@ class HttpWorker implements HttpWorkerInterface
             }
             $content = (string)$body->current();
             if ($this->worker->getPayload(StreamStop::class) !== null) {
-                $body->throw(new \RuntimeException('Stream has been stopped by the client.'));
+                $body->throw(new StreamStoppedException());
                 return;
             }
             $this->worker->respond(new Payload($content, $head, false));
