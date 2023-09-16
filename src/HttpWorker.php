@@ -8,6 +8,7 @@ use Generator;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
+use Spiral\RoadRunner\StreamWorkerInterface;
 use Spiral\RoadRunner\WorkerInterface;
 
 /**
@@ -86,18 +87,22 @@ class HttpWorker implements HttpWorkerInterface
             'headers' => $headers ?: (object)[],
         ], \JSON_THROW_ON_ERROR);
 
+        $worker = $this->worker instanceof StreamWorkerInterface
+            ? $this->worker->withStreamMode()
+            : $this->worker;
+
         do {
             if (!$body->valid()) {
                 $content = (string)$body->getReturn();
-                $this->worker->respond(new Payload($content, $head, true));
+                $worker->respond(new Payload($content, $head, true));
                 break;
             }
             $content = (string)$body->current();
-            if ($this->worker->getPayload(StreamStop::class) !== null) {
+            if ($worker->getPayload(StreamStop::class) !== null) {
                 $body->throw(new StreamStoppedException());
                 return;
             }
-            $this->worker->respond(new Payload($content, $head, false));
+            $worker->respond(new Payload($content, $head, false));
             $body->next();
             $head = null;
         } while (true);
