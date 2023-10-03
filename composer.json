@@ -42,7 +42,7 @@
         "psr/http-factory": "^1.0.1",
         "psr/http-message": "^1.0.1 || ^2.0",
         "spiral/roadrunner": "^2023.1",
-        "spiral/roadrunner-worker": "dev-ping-pong-stream as 3.1.0"
+        "spiral/roadrunner-worker": "^3.1.0"
     },
     "require-dev": {
         "buggregator/trap": "^1.0",
