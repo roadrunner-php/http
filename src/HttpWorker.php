@@ -93,21 +93,37 @@ class HttpWorker implements HttpWorkerInterface
 
         do {
             if (!$body->valid()) {
+                // End of generator
                 $content = (string)$body->getReturn();
                 if ($endOfStream === false && $content === '') {
+                    // We don't need to send an empty frame if the stream is not ended
                     return;
                 }
                 $worker->respond(new Payload($content, $head, $endOfStream));
                 break;
             }
+
             $content = (string)$body->current();
             if ($worker->getPayload(StreamStop::class) !== null) {
                 $body->throw(new StreamStoppedException());
+
+                // RoadRunner is waiting for a Stream Stop Frame to confirm that the stream is closed
+                // and the worker doesn't hang
+                $worker->respond(new Payload(''));
                 return;
             }
+
+            // Send a chunk of data
             $worker->respond(new Payload($content, $head, false));
-            $body->next();
             $head = null;
+
+            try {
+                $body->next();
+            } catch (\Throwable) {
+                // Stop the stream if an exception is thrown from the generator
+                $worker->respond(new Payload(''));
+                return;
+            }
         } while (true);
     }
 
