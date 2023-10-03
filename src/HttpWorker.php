@@ -65,10 +65,10 @@ class HttpWorker implements HttpWorkerInterface
     /**
      * @throws \JsonException
      */
-    public function respond(int $status, string|Generator $body, array $headers = []): void
+    public function respond(int $status, string|Generator $body, array $headers = [], bool $endOfStream = true): void
     {
         if ($body instanceof Generator) {
-            $this->respondStream($status, $body, $headers);
+            $this->respondStream($status, $body, $headers, $endOfStream);
             return;
         }
 
@@ -77,10 +77,10 @@ class HttpWorker implements HttpWorkerInterface
             'headers' => $headers ?: (object)[],
         ], \JSON_THROW_ON_ERROR);
 
-        $this->worker->respond(new Payload($body, $head));
+        $this->worker->respond(new Payload($body, $head, $endOfStream));
     }
 
-    private function respondStream(int $status, Generator $body, array $headers = []): void
+    private function respondStream(int $status, Generator $body, array $headers = [], bool $endOfStream = true): void
     {
         $head = \json_encode([
             'status'  => $status,
@@ -94,7 +94,10 @@ class HttpWorker implements HttpWorkerInterface
         do {
             if (!$body->valid()) {
                 $content = (string)$body->getReturn();
-                $worker->respond(new Payload($content, $head, true));
+                if ($endOfStream === false && $content === '') {
+                    return;
+                }
+                $worker->respond(new Payload($content, $head, $endOfStream));
                 break;
             }
             $content = (string)$body->current();
