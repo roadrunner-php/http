@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Tests\Http\Feature;
 
+use Exception;
 use PHPUnit\Framework\TestCase;
 use Spiral\Goridge\SocketRelay;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Http\HttpWorker;
+use Spiral\RoadRunner\Message\Command\GetProcessId;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\Tests\Http\Server\Command\BaseCommand;
 use Spiral\RoadRunner\Tests\Http\Server\Command\StreamStop;
@@ -94,10 +96,46 @@ class StreamResponseTest extends TestCase
         self::assertSame(\implode("\n", ['Hel', 'lo,']), \trim(ServerRunner::getBuffer()));
     }
 
+    public function testSend1xxWithBody(): void
+    {
+        $httpWorker = $this->makeHttpWorker();
+
+        $this->expectExceptionMessage('Unable to send a body with informational status code');
+
+        $httpWorker->respond(
+            103,
+            (function () {
+                yield 'Hel';
+                yield 'lo,';
+            })(),
+        );
+    }
+
+    public function testExceptionInGenerator(): void
+    {
+        $httpWorker = $this->makeHttpWorker();
+
+        // Flush buffer
+        ServerRunner::getBuffer();
+
+        $httpWorker->respond(
+            200,
+            (function () {
+                yield 'Hel';
+                yield 'lo,';
+                throw new Exception('test');
+            })(),
+        );
+
+
+        \usleep(100_000);
+        self::assertSame(\implode("\n", ['Hel', 'lo,']), \trim(ServerRunner::getBuffer()));
+    }
+
     /**
      * StopStream should be ignored if stream is already ended.
      * Commented because doesn't pass in CI
-     * todo: check after RoadRunner Stream Response release
+     */
     public function testStopStreamAfterStreamEnd(): void
     {
         $httpWorker = $this->makeHttpWorker();
@@ -116,11 +154,14 @@ class StreamResponseTest extends TestCase
         $this->assertFalse($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
         $this->sendCommand(new StreamStop());
         \usleep(200_000);
-        self::assertSame(\implode("\n", ['Hello', 'World!']), \trim(ServerRunner::getBuffer()));
+        $this->assertSame(\implode("\n", ['Hello', 'World!']), \trim(ServerRunner::getBuffer()));
         $this->assertTrue($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
+
+        $this->getWorker()->getPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class);
+        $this->getWorker()->getPayload(GetProcessId::class);
+
         $this->assertFalse($this->getWorker()->hasPayload());
     }
-    */
 
     private function getRelay(): SocketRelay
     {

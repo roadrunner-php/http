@@ -25,8 +25,7 @@ interface HttpWorkerInterface extends WorkerAwareInterface
      * @param Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null>|string $body Body of response.
      *        If the body is a generator, then each yielded value will be sent as a separated stream chunk.
      *        Returned value will be sent as a last stream package.
-     *        Note: Stream response is experimental feature and isn't supported by RoadRunner yet.
-     *              But you can try to use RoadRunner 2.9-alpha to test it.
+     *        Note: Stream response is supported by RoadRunner since version 2023.3
      * @param HeadersList|array $headers An associative array of the message's headers. Each key MUST be a header name,
      *                                   and each value MUST be an array of strings for that header.
      */

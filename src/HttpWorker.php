@@ -8,6 +8,7 @@ use Generator;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
+use Spiral\RoadRunner\StreamWorkerInterface;
 use Spiral\RoadRunner\WorkerInterface;
 
 /**
@@ -64,10 +65,14 @@ class HttpWorker implements HttpWorkerInterface
     /**
      * @throws \JsonException
      */
-    public function respond(int $status, string|Generator $body, array $headers = []): void
+    public function respond(int $status, string|Generator $body = '', array $headers = [], bool $endOfStream = true): void
     {
+        if ($status < 200 && $status >= 100 && $body !== '') {
+            throw new \InvalidArgumentException('Unable to send a body with informational status code.');
+        }
+
         if ($body instanceof Generator) {
-            $this->respondStream($status, $body, $headers);
+            $this->respondStream($status, $body, $headers, $endOfStream);
             return;
         }
 
@@ -76,30 +81,53 @@ class HttpWorker implements HttpWorkerInterface
             'headers' => $headers ?: (object)[],
         ], \JSON_THROW_ON_ERROR);
 
-        $this->worker->respond(new Payload($body, $head));
+        $this->worker->respond(new Payload($body, $head, $endOfStream));
     }
 
-    private function respondStream(int $status, Generator $body, array $headers = []): void
+    private function respondStream(int $status, Generator $body, array $headers = [], bool $endOfStream = true): void
     {
         $head = \json_encode([
             'status'  => $status,
             'headers' => $headers ?: (object)[],
         ], \JSON_THROW_ON_ERROR);
 
+        $worker = $this->worker instanceof StreamWorkerInterface
+            ? $this->worker->withStreamMode()
+            : $this->worker;
+
         do {
             if (!$body->valid()) {
+                // End of generator
                 $content = (string)$body->getReturn();
-                $this->worker->respond(new Payload($content, $head, true));
+                if ($endOfStream === false && $content === '') {
+                    // We don't need to send an empty frame if the stream is not ended
+                    return;
+                }
+                $worker->respond(new Payload($content, $head, $endOfStream));
                 break;
             }
+
             $content = (string)$body->current();
-            if ($this->worker->getPayload(StreamStop::class) !== null) {
+            if ($worker->getPayload(StreamStop::class) !== null) {
                 $body->throw(new StreamStoppedException());
+
+                // RoadRunner is waiting for a Stream Stop Frame to confirm that the stream is closed
+                // and the worker doesn't hang
+                $worker->respond(new Payload(''));
                 return;
             }
-            $this->worker->respond(new Payload($content, $head, false));
-            $body->next();
+
+            // Send a chunk of data
+            $worker->respond(new Payload($content, $head, false));
             $head = null;
+
+            try {
+                $body->next();
+            } catch (\Throwable) {
+                // Stop the stream if an exception is thrown from the generator
+                $worker->respond(new Payload(''));
+                return;
+            }
         } while (true);
     }
 
