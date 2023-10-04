@@ -65,8 +65,12 @@ class HttpWorker implements HttpWorkerInterface
     /**
      * @throws \JsonException
      */
-    public function respond(int $status, string|Generator $body, array $headers = [], bool $endOfStream = true): void
+    public function respond(int $status, string|Generator $body = '', array $headers = [], bool $endOfStream = true): void
     {
+        if ($status < 200 && $status >= 100 && $body !== '') {
+            throw new \InvalidArgumentException('Unable to send a body with informational status code.');
+        }
+
         if ($body instanceof Generator) {
             $this->respondStream($status, $body, $headers, $endOfStream);
             return;

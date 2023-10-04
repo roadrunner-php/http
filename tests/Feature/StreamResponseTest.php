@@ -96,6 +96,21 @@ class StreamResponseTest extends TestCase
         self::assertSame(\implode("\n", ['Hel', 'lo,']), \trim(ServerRunner::getBuffer()));
     }
 
+    public function testSend1xxWithBody(): void
+    {
+        $httpWorker = $this->makeHttpWorker();
+
+        $this->expectExceptionMessage('Unable to send a body with informational status code');
+
+        $httpWorker->respond(
+            103,
+            (function () {
+                yield 'Hel';
+                yield 'lo,';
+            })(),
+        );
+    }
+
     public function testExceptionInGenerator(): void
     {
         $httpWorker = $this->makeHttpWorker();
