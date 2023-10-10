@@ -22,37 +22,37 @@ with much greater performance and flexibility.
 	<a href="https://roadrunner.dev/docs"><b>Documentation</b></a>
 </p>
 
-Repository:
---------
+
+## Repository:
 
 This repository contains the codebase PSR-7 PHP workers.
 Check [spiral/roadrunner](https://github.com/spiral/roadrunner) to get application server.
 
-Installation:
---------
+
+## Installation:
 
 To install application server and HTTP codebase:
 
 ```bash
-$ composer require spiral/roadrunner-http nyholm/psr7
+composer require spiral/roadrunner-http nyholm/psr7
 ```
 
 You can use the convenient installer to download the latest available compatible version of RoadRunner assembly:
 
 ```bash
-$ composer require spiral/roadrunner-cli --dev
+composer require spiral/roadrunner-cli --dev
 ```
 
 To download latest version of application server:
 
 ```bash
-$ vendor/bin/rr get
+vendor/bin/rr get
 ```
 
-> You can use any [PSR-17 compatible implementation](https://github.com/search?q=psr-17).
+> You can use any [PSR-17 compatible implementation](https://packagist.org/providers/psr/http-factory-implementation).
 
-Example:
--------
+
+## Example:
 
 To init abstract RoadRunner worker:
 
@@ -88,9 +88,9 @@ while (true) {
         $request = $psr7->waitRequest();
     } catch (\Throwable $e) {
         // Although the PSR-17 specification clearly states that there can be
-	// no exceptions when creating a request, however, some implementations
-	// may violate this rule. Therefore, it is recommended to process the 
-	// incoming request for errors.
+        // no exceptions when creating a request, however, some implementations
+        // may violate this rule. Therefore, it is recommended to process the 
+        // incoming request for errors.
         //
         // Send "Bad Request" response.
         $psr7->respond(new Response(400));
@@ -99,38 +99,58 @@ while (true) {
 
     try {
         // Here is where the call to your application code will be located. 
-	// For example:
-	//
+        // For example:
+        //
         //  $response = $app->send($request);
         //
         // Reply by the 200 OK response
         $psr7->respond(new Response(200, [], 'Hello RoadRunner!'));
     } catch (\Throwable $e) {
         // In case of any exceptions in the application code, you should handle
-	// them and inform the client about the presence of a server error.
-	//
+        // them and inform the client about the presence of a server error.
+        //
         // Reply by the 500 Internal Server Error response
         $psr7->respond(new Response(500, [], 'Something Went Wrong!'));
-        
-	// Additionally, we can inform the RoadRunner that the processing 
-	// of the request failed.
+
+        // Additionally, we can inform the RoadRunner that the processing 
+        // of the request failed.
         $worker->error((string)$e);
     }
 }
 ```
 
-<a href="https://spiral.dev/">
-<img src="https://user-images.githubusercontent.com/773481/220979012-e67b74b5-3db1-41b7-bdb0-8a042587dedc.jpg" alt="try Spiral Framework" />
-</a>
+### Stream response
 
-Testing:
---------
+To send a response in a stream, set the `$chunkSize` property in `PSR7Worker`:
 
-This codebase is automatically tested via host repository - [spiral/roadrunner](https://github.com/spiral/roadrunner).
+```php
+$psr7 = new PSR7Worker($worker, $factory, $factory, $factory);
+$psr7->chunkSize = 512 * 1024; // 512KB
+```
+
+Now PSR7Worker will cut the response into chunks of 512KB and send them to the stream.
+
+### Early hints
+
+To send multiple responses you may use the `\Spiral\RoadRunner\Http\HttpWorker::respond()` method with
+the `endOfStream` parameter set to `false`. This will send the response to the client and allow you to send
+additional responses.
+
+```php
+/** @var \Spiral\RoadRunner\Http\HttpWorker $httpWorker */
+$httpWorker->respond(103, header: ['Link' => ['</style.css>; rel=preload; as=style']], endOfStream: false);
+$httpWorker->respond(200, body: $body);
+```
 
 
-License:
---------
+[![try Spiral Framework](https://user-images.githubusercontent.com/773481/220979012-e67b74b5-3db1-41b7-bdb0-8a042587dedc.jpg)](https://spiral.dev/)
+
+## Testing:
+
+This codebase is automatically tested via host repository - [spiral/roadrunner](https://github.com/roadrunner-server/roadrunner).
+
+
+## License:
 
 The MIT License (MIT). Please see [`LICENSE`](./LICENSE) for more information. Maintained
 by [Spiral Scout](https://spiralscout.com).
