@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Spiral\RoadRunner\Http;
 
 use Generator;
+use RoadRunner\HTTP\DTO\V1BETA1\FileUpload;
+use RoadRunner\HTTP\DTO\V1BETA1\HeaderValue;
+use RoadRunner\HTTP\DTO\V1BETA1\Request as RequestProto;
+use Spiral\RoadRunner\Encoding;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
@@ -56,10 +60,17 @@ class HttpWorker implements HttpWorkerInterface
             return null;
         }
 
+        if ($payload->encoding === Encoding::Protobuf) {
+            $message = new RequestProto();
+            $message->mergeFromString($payload->body);
+
+            return $this->requestFromProto($message);
+        }
+
         /** @var RequestContext $context */
         $context = \json_decode($payload->header, true, 512, \JSON_THROW_ON_ERROR);
 
-        return $this->createRequest($payload->body, $context);
+        return $this->arrayToRequest($payload->body, $context);
     }
 
     /**
@@ -134,7 +145,7 @@ class HttpWorker implements HttpWorkerInterface
     /**
      * @param RequestContext $context
      */
-    private function createRequest(string $body, array $context): Request
+    private function arrayToRequest(string $body, array $context): Request
     {
         \parse_str($context['rawQuery'], $query);
         return new Request(
@@ -154,6 +165,47 @@ class HttpWorker implements HttpWorkerInterface
         );
     }
 
+    private function requestFromProto(RequestProto $message): Request
+    {
+        $headers = $this->headerValueToArray($message->getHeader());
+        $uploadedFiles = [];
+
+        /**
+         * @var non-empty-string $name
+         * @var FileUpload $uploads
+         */
+        foreach ($message->getUploads() as $name => $uploads) {
+            $uploadedFiles[$name] = [
+                'name' => $uploads->getName(),
+                'mime' => $uploads->getMime(),
+                'size' => $uploads->getSize(),
+                'error' => $uploads->getError(),
+                'tmpName' => $uploads->getTempFilename(),
+            ];
+        }
+
+        \parse_str($message->getRawQuery(), $query);
+        return new Request(
+            remoteAddr: $message->getRemoteAddr(),
+            protocol: $message->getProtocol(),
+            method: $message->getMethod(),
+            uri: $message->getUri(),
+            headers: $this->filterHeaders($headers),
+            cookies: \array_map(
+                static fn(array $values) => \implode(',', $values),
+                $this->headerValueToArray($message->getCookies()),
+            ),
+            uploads: $uploadedFiles,
+            attributes: [
+                Request::PARSED_BODY_ATTRIBUTE_NAME => $message->getParsed(),
+            ] + \iterator_to_array($message->getAttributes()),
+            query: $query,
+            // todo rawBody?
+            body: $message->getBody(),
+            parsed: $message->getParsed(),
+        );
+    }
+
     /**
      * Remove all non-string and empty-string keys
      *
@@ -164,7 +216,7 @@ class HttpWorker implements HttpWorkerInterface
     {
         foreach ($headers as $key => $_) {
             if (!\is_string($key) || $key === '') {
-                // ignore invalid header names or values (otherwise, the worker will be crashed)
+                // ignore invalid header names or values (otherwise, the worker might be crashed)
                 // @see: <https://git.io/JzjgJ>
                 unset($headers[$key]);
             }
@@ -172,5 +224,23 @@ class HttpWorker implements HttpWorkerInterface
 
         /** @var HeadersList $headers */
         return $headers;
+    }
+
+    /**
+     * @param \Traversable<non-empty-string, HeaderValue> $message
+     * @return HeadersList
+     */
+    private function headerValueToArray(\Traversable $message): array
+    {
+        $result = [];
+        /**
+         * @var non-empty-string $key
+         * @var HeaderValue $value
+         */
+        foreach ($message as $key => $value) {
+            $result[$key] = \iterator_to_array($value->getValue());
+        }
+
+        return $result;
     }
 }
