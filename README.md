@@ -137,9 +137,12 @@ the `endOfStream` parameter set to `false`. This will send the response to the c
 additional responses.
 
 ```php
-/** @var \Spiral\RoadRunner\Http\HttpWorker $httpWorker */
-$httpWorker->respond(103, header: ['Link' => ['</style.css>; rel=preload; as=style']], endOfStream: false);
-$httpWorker->respond(200, body: $body);
+/** @var \Spiral\RoadRunner\Http\PSR7Worker $psr7 */
+$httpWorker = $psr7->getHttpWorker()
+    ->respond(103, header: ['Link' => ['</style.css>; rel=preload; as=style']], endOfStream: false);
+
+// End of stream will be sent automatically after PSR7Worker::respond() call
+$psr7->respond(new Response(200, [], 'Hello RoadRunner!'));
 ```
 
 
