@@ -54,6 +54,11 @@ class PSR7Worker implements PSR7WorkerInterface
         return $this->httpWorker->getWorker();
     }
 
+    public function getHttpWorker(): HttpWorker
+    {
+        return $this->httpWorker;
+    }
+
     /**
      * @throws \JsonException
      */
