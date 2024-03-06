@@ -8,7 +8,6 @@ use Generator;
 use RoadRunner\HTTP\DTO\V1BETA1\FileUpload;
 use RoadRunner\HTTP\DTO\V1BETA1\HeaderValue;
 use RoadRunner\HTTP\DTO\V1BETA1\Request as RequestProto;
-use Spiral\RoadRunner\Encoding;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
@@ -20,19 +19,6 @@ use Spiral\RoadRunner\WorkerInterface;
  * @psalm-import-type AttributesList from Request
  * @psalm-import-type UploadedFilesList from Request
  * @psalm-import-type CookiesList from Request
- *
- * @psalm-type RequestContext = array{
- *      remoteAddr: non-empty-string,
- *      protocol:   non-empty-string,
- *      method:     non-empty-string,
- *      uri:        string,
- *      attributes: AttributesList,
- *      headers:    HeadersList,
- *      cookies:    CookiesList,
- *      uploads:    UploadedFilesList|null,
- *      rawQuery:   string,
- *      parsed:     bool
- * }
  *
  * @see Request
  */
@@ -48,9 +34,6 @@ class HttpWorker implements HttpWorkerInterface
         return $this->worker;
     }
 
-    /**
-     * @throws \JsonException
-     */
     public function waitRequest(): ?Request
     {
         $payload = $this->worker->waitPayload();
@@ -60,17 +43,10 @@ class HttpWorker implements HttpWorkerInterface
             return null;
         }
 
-        if ($payload->encoding === Encoding::Protobuf) {
-            $message = new RequestProto();
-            $message->mergeFromString($payload->body);
+        $message = new RequestProto();
+        $message->mergeFromString($payload->body);
 
-            return $this->requestFromProto($message);
-        }
-
-        /** @var RequestContext $context */
-        $context = \json_decode($payload->header, true, 512, \JSON_THROW_ON_ERROR);
-
-        return $this->arrayToRequest($payload->body, $context);
+        return $this->requestFromProto($message);
     }
 
     /**
@@ -142,29 +118,6 @@ class HttpWorker implements HttpWorkerInterface
         } while (true);
     }
 
-    /**
-     * @param RequestContext $context
-     */
-    private function arrayToRequest(string $body, array $context): Request
-    {
-        \parse_str($context['rawQuery'], $query);
-        return new Request(
-            remoteAddr: $context['remoteAddr'],
-            protocol: $context['protocol'],
-            method: $context['method'],
-            uri: $context['uri'],
-            headers: $this->filterHeaders((array)($context['headers'] ?? [])),
-            cookies: (array)($context['cookies'] ?? []),
-            uploads: (array)($context['uploads'] ?? []),
-            attributes: [
-                Request::PARSED_BODY_ATTRIBUTE_NAME => $context['parsed'],
-            ] + (array)($context['attributes'] ?? []),
-            query: $query,
-            body: $body,
-            parsed: $context['parsed'],
-        );
-    }
-
     private function requestFromProto(RequestProto $message): Request
     {
         $headers = $this->headerValueToArray($message->getHeader());
@@ -200,8 +153,7 @@ class HttpWorker implements HttpWorkerInterface
                 Request::PARSED_BODY_ATTRIBUTE_NAME => $message->getParsed(),
             ] + \iterator_to_array($message->getAttributes()),
             query: $query,
-            // todo rawBody?
-            body: $message->getBody(),
+            body: $message->getRawQuery(),
             parsed: $message->getParsed(),
         );
     }
