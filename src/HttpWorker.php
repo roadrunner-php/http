@@ -9,6 +9,7 @@ use RoadRunner\HTTP\DTO\V1BETA1\FileUpload;
 use RoadRunner\HTTP\DTO\V1BETA1\HeaderValue;
 use RoadRunner\HTTP\DTO\V1BETA1\Request as RequestProto;
 use RoadRunner\HTTP\DTO\V1BETA1\Response;
+use Spiral\Goridge\Frame;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
@@ -38,7 +39,7 @@ use Spiral\RoadRunner\WorkerInterface;
  */
 class HttpWorker implements HttpWorkerInterface
 {
-    private static ?bool $isProto = null;
+    private static ?int $codec = null;
 
     public function __construct(
         private readonly WorkerInterface $worker,
@@ -62,7 +63,11 @@ class HttpWorker implements HttpWorkerInterface
             return null;
         }
 
-        if ($this->isProtoPayload($payload)) {
+        if (static::$codec === null) {
+            static::$codec = json_validate($payload->header) ? Frame::CODEC_JSON : Frame::CODEC_PROTO;
+        }
+
+        if (static::$codec === Frame::CODEC_PROTO) {
             $message = new RequestProto();
             $message->mergeFromString($payload->header);
 
@@ -90,7 +95,8 @@ class HttpWorker implements HttpWorkerInterface
             return;
         }
 
-        $this->worker->respond($this->createRespondPayload($status, $body, $headers, $endOfStream));
+        /** @psalm-suppress TooManyArguments */
+        $this->worker->respond($this->createRespondPayload($status, $body, $headers, $endOfStream), static::$codec);
     }
 
     /**
@@ -110,7 +116,11 @@ class HttpWorker implements HttpWorkerInterface
                     // We don't need to send an empty frame if the stream is not ended
                     return;
                 }
-                $worker->respond($this->createRespondPayload($status, $content, $headers, $endOfStream));
+                /** @psalm-suppress TooManyArguments */
+                $worker->respond(
+                    $this->createRespondPayload($status, $content, $headers, $endOfStream),
+                    static::$codec
+                );
                 break;
             }
 
@@ -124,8 +134,11 @@ class HttpWorker implements HttpWorkerInterface
                 return;
             }
 
-            // Send a chunk of data
-            $worker->respond($this->createRespondPayload($status, $content, $headers, false));
+            /**
+             * Send a chunk of data
+             * @psalm-suppress TooManyArguments
+             */
+            $worker->respond($this->createRespondPayload($status, $content, $headers, false), static::$codec);
 
             try {
                 $body->next();
@@ -260,20 +273,11 @@ class HttpWorker implements HttpWorkerInterface
      */
     private function createRespondPayload(int $status, string $body, array $headers = [], bool $eos = true): Payload
     {
-        $head = static::$isProto
+        $head = static::$codec === Frame::CODEC_PROTO
             ? (new Response(['status' => $status, 'headers' => $this->arrayToHeaderValue($headers)]))
                 ->serializeToString()
             : \json_encode(['status' => $status, 'headers' => $headers ?: (object)[]], \JSON_THROW_ON_ERROR);
 
         return new Payload(body: $body, header: $head, eos: $eos);
-    }
-
-    private function isProtoPayload(Payload $payload): bool
-    {
-        if (static::$isProto === null) {
-            static::$isProto = !json_validate($payload->header);
-        }
-
-        return static::$isProto;
     }
 }
