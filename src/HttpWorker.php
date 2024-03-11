@@ -8,7 +8,7 @@ use Generator;
 use RoadRunner\HTTP\DTO\V1BETA1\FileUpload;
 use RoadRunner\HTTP\DTO\V1BETA1\HeaderValue;
 use RoadRunner\HTTP\DTO\V1BETA1\Request as RequestProto;
-use Spiral\RoadRunner\Encoding;
+use RoadRunner\HTTP\DTO\V1BETA1\Response;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
@@ -38,6 +38,8 @@ use Spiral\RoadRunner\WorkerInterface;
  */
 class HttpWorker implements HttpWorkerInterface
 {
+    private static ?bool $isProto = null;
+
     public function __construct(
         private readonly WorkerInterface $worker,
     ) {
@@ -60,11 +62,11 @@ class HttpWorker implements HttpWorkerInterface
             return null;
         }
 
-        if ($payload->encoding === Encoding::Protobuf) {
+        if ($this->isProtoPayload($payload)) {
             $message = new RequestProto();
-            $message->mergeFromString($payload->body);
+            $message->mergeFromString($payload->header);
 
-            return $this->requestFromProto($message);
+            return $this->requestFromProto($payload->body, $message);
         }
 
         /** @var RequestContext $context */
@@ -74,6 +76,7 @@ class HttpWorker implements HttpWorkerInterface
     }
 
     /**
+     * @param array<array-key, array<array-key, string>> $headers
      * @throws \JsonException
      */
     public function respond(int $status, string|Generator $body = '', array $headers = [], bool $endOfStream = true): void
@@ -87,21 +90,14 @@ class HttpWorker implements HttpWorkerInterface
             return;
         }
 
-        $head = \json_encode([
-            'status'  => $status,
-            'headers' => $headers ?: (object)[],
-        ], \JSON_THROW_ON_ERROR);
-
-        $this->worker->respond(new Payload($body, $head, $endOfStream));
+        $this->worker->respond($this->createRespondPayload($status, $body, $headers, $endOfStream));
     }
 
+    /**
+     * @param array<array-key, array<array-key, string>> $headers
+     */
     private function respondStream(int $status, Generator $body, array $headers = [], bool $endOfStream = true): void
     {
-        $head = \json_encode([
-            'status'  => $status,
-            'headers' => $headers ?: (object)[],
-        ], \JSON_THROW_ON_ERROR);
-
         $worker = $this->worker instanceof StreamWorkerInterface
             ? $this->worker->withStreamMode()
             : $this->worker;
@@ -114,7 +110,7 @@ class HttpWorker implements HttpWorkerInterface
                     // We don't need to send an empty frame if the stream is not ended
                     return;
                 }
-                $worker->respond(new Payload($content, $head, $endOfStream));
+                $worker->respond($this->createRespondPayload($status, $content, $headers, $endOfStream));
                 break;
             }
 
@@ -129,8 +125,7 @@ class HttpWorker implements HttpWorkerInterface
             }
 
             // Send a chunk of data
-            $worker->respond(new Payload($content, $head, false));
-            $head = null;
+            $worker->respond($this->createRespondPayload($status, $content, $headers, false));
 
             try {
                 $body->next();
@@ -165,26 +160,26 @@ class HttpWorker implements HttpWorkerInterface
         );
     }
 
-    private function requestFromProto(RequestProto $message): Request
+    private function requestFromProto(string $body, RequestProto $message): Request
     {
         $headers = $this->headerValueToArray($message->getHeader());
         $uploadedFiles = [];
 
         /**
-         * @var non-empty-string $name
          * @var FileUpload $uploads
          */
-        foreach ($message->getUploads() as $name => $uploads) {
-            $uploadedFiles[$name] = [
+        foreach ($message->getUploads()?->getList() ?? [] as $uploads) {
+            $uploadedFiles[$uploads->getName()] = [
                 'name' => $uploads->getName(),
                 'mime' => $uploads->getMime(),
-                'size' => $uploads->getSize(),
-                'error' => $uploads->getError(),
+                'size' => (int) $uploads->getSize(),
+                'error' => (int) $uploads->getError(),
                 'tmpName' => $uploads->getTempFilename(),
             ];
         }
 
         \parse_str($message->getRawQuery(), $query);
+        /** @psalm-suppress ArgumentTypeCoercion, MixedArgumentTypeCoercion */
         return new Request(
             remoteAddr: $message->getRemoteAddr(),
             protocol: $message->getProtocol(),
@@ -200,8 +195,7 @@ class HttpWorker implements HttpWorkerInterface
                 Request::PARSED_BODY_ATTRIBUTE_NAME => $message->getParsed(),
             ] + \iterator_to_array($message->getAttributes()),
             query: $query,
-            // todo rawBody?
-            body: $message->getBody(),
+            body: $body,
             parsed: $message->getParsed(),
         );
     }
@@ -228,7 +222,6 @@ class HttpWorker implements HttpWorkerInterface
 
     /**
      * @param \Traversable<non-empty-string, HeaderValue> $message
-     * @return HeadersList
      */
     private function headerValueToArray(\Traversable $message): array
     {
@@ -242,5 +235,45 @@ class HttpWorker implements HttpWorkerInterface
         }
 
         return $result;
+    }
+
+    /**
+     * @param array<array-key, array<array-key, string>> $headers
+     * @return array<non-empty-string, HeaderValue>
+     */
+    private function arrayToHeaderValue(array $headers = []): array
+    {
+        $result = [];
+        /**
+         * @var non-empty-string $key
+         * @var array<array-key, string> $value
+         */
+        foreach ($headers as $key => $value) {
+            $result[$key] = new HeaderValue(['value' => $value]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<array-key, array<array-key, string>> $headers
+     */
+    private function createRespondPayload(int $status, string $body, array $headers = [], bool $eos = true): Payload
+    {
+        $head = static::$isProto
+            ? (new Response(['status' => $status, 'headers' => $this->arrayToHeaderValue($headers)]))
+                ->serializeToString()
+            : \json_encode(['status' => $status, 'headers' => $headers ?: (object)[]], \JSON_THROW_ON_ERROR);
+
+        return new Payload(body: $body, header: $head, eos: $eos);
+    }
+
+    private function isProtoPayload(Payload $payload): bool
+    {
+        if (static::$isProto === null) {
+            static::$isProto = !json_validate($payload->header);
+        }
+
+        return static::$isProto;
     }
 }
