@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Spiral\RoadRunner\Http;
 
 use Generator;
-use RoadRunner\HTTP\DTO\V1BETA1\FileUpload;
-use RoadRunner\HTTP\DTO\V1BETA1\HeaderValue;
-use RoadRunner\HTTP\DTO\V1BETA1\Request as RequestProto;
-use RoadRunner\HTTP\DTO\V1BETA1\Response;
+use RoadRunner\HTTP\DTO\V1\HeaderValue;
+use RoadRunner\HTTP\DTO\V1\Request as RequestProto;
+use RoadRunner\HTTP\DTO\V1\Response;
 use Spiral\Goridge\Frame;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Message\Command\StreamStop;
@@ -175,21 +174,9 @@ class HttpWorker implements HttpWorkerInterface
 
     private function requestFromProto(string $body, RequestProto $message): Request
     {
+        /** @var UploadedFilesList $uploads */
+        $uploads = \json_decode($message->getUploads(), true) ?? [];
         $headers = $this->headerValueToArray($message->getHeader());
-        $uploadedFiles = [];
-
-        /**
-         * @var FileUpload $uploads
-         */
-        foreach ($message->getUploads()?->getList() ?? [] as $uploads) {
-            $uploadedFiles[$uploads->getName()] = [
-                'name' => $uploads->getName(),
-                'mime' => $uploads->getMime(),
-                'size' => (int) $uploads->getSize(),
-                'error' => (int) $uploads->getError(),
-                'tmpName' => $uploads->getTempFilename(),
-            ];
-        }
 
         \parse_str($message->getRawQuery(), $query);
         /** @psalm-suppress ArgumentTypeCoercion, MixedArgumentTypeCoercion */
@@ -203,7 +190,7 @@ class HttpWorker implements HttpWorkerInterface
                 static fn(array $values) => \implode(',', $values),
                 $this->headerValueToArray($message->getCookies()),
             ),
-            uploads: $uploadedFiles,
+            uploads: $uploads,
             attributes: [
                 Request::PARSED_BODY_ATTRIBUTE_NAME => $message->getParsed(),
             ] + \iterator_to_array($message->getAttributes()),

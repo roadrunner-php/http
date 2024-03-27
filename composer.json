@@ -43,7 +43,7 @@
         "psr/http-message": "^1.0.1 || ^2.0",
         "spiral/roadrunner": "^2023.3 || ^2024.1",
         "spiral/roadrunner-worker": "^3.1",
-        "roadrunner-php/roadrunner-api-dto": "^1.4",
+        "roadrunner-php/roadrunner-api-dto": "dev-http-beta as 1.6.0",
         "symfony/polyfill-php83": "^1.29"
     },
     "require-dev": {
