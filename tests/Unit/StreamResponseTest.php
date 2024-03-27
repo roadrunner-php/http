@@ -10,7 +10,7 @@ use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\Tests\Http\Unit\Stub\TestRelay;
 use Spiral\RoadRunner\Worker;
 
-class StreamResponseTest extends TestCase
+final class StreamResponseTest extends TestCase
 {
     private TestRelay $relay;
     private Worker $worker;
@@ -18,7 +18,6 @@ class StreamResponseTest extends TestCase
     protected function tearDown(): void
     {
         unset($this->relay, $this->worker);
-        parent::tearDown();
     }
 
     /**

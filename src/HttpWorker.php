@@ -193,7 +193,10 @@ class HttpWorker implements HttpWorkerInterface
             uploads: $uploads,
             attributes: [
                 Request::PARSED_BODY_ATTRIBUTE_NAME => $message->getParsed(),
-            ] + \iterator_to_array($message->getAttributes()),
+            ] + \array_map(
+                static fn(array $values) => \array_shift($values),
+                $this->headerValueToArray($message->getAttributes()),
+            ),
             query: $query,
             body: $body,
             parsed: $message->getParsed(),
