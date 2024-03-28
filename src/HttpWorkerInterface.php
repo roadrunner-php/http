@@ -26,8 +26,9 @@ interface HttpWorkerInterface extends WorkerAwareInterface
      *        If the body is a generator, then each yielded value will be sent as a separated stream chunk.
      *        Returned value will be sent as a last stream package.
      *        Note: Stream response is supported by RoadRunner since version 2023.3
-     * @param HeadersList|array $headers An associative array of the message's headers. Each key MUST be a header name,
-     *                                   and each value MUST be an array of strings for that header.
+     * @param HeadersList|array<array-key, array<array-key, string>> $headers $headers An associative array of the
+     *        message's headers. Each key MUST be a header name, and each value MUST be an array of strings for
+     *        that header.
      */
     public function respond(int $status, string|Generator $body, array $headers = []): void;
 }

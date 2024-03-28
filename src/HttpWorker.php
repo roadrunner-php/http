@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Spiral\RoadRunner\Http;
 
 use Generator;
+use RoadRunner\HTTP\DTO\V1\HeaderValue;
+use RoadRunner\HTTP\DTO\V1\Request as RequestProto;
+use RoadRunner\HTTP\DTO\V1\Response;
+use Spiral\Goridge\Frame;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Message\Command\StreamStop;
 use Spiral\RoadRunner\Payload;
@@ -34,6 +38,8 @@ use Spiral\RoadRunner\WorkerInterface;
  */
 class HttpWorker implements HttpWorkerInterface
 {
+    private static ?int $codec = null;
+
     public function __construct(
         private readonly WorkerInterface $worker,
     ) {
@@ -56,13 +62,25 @@ class HttpWorker implements HttpWorkerInterface
             return null;
         }
 
+        if (static::$codec === null) {
+            static::$codec = json_validate($payload->header) ? Frame::CODEC_JSON : Frame::CODEC_PROTO;
+        }
+
+        if (static::$codec === Frame::CODEC_PROTO) {
+            $message = new RequestProto();
+            $message->mergeFromString($payload->header);
+
+            return $this->requestFromProto($payload->body, $message);
+        }
+
         /** @var RequestContext $context */
         $context = \json_decode($payload->header, true, 512, \JSON_THROW_ON_ERROR);
 
-        return $this->createRequest($payload->body, $context);
+        return $this->arrayToRequest($payload->body, $context);
     }
 
     /**
+     * @param array<array-key, array<array-key, string>> $headers
      * @throws \JsonException
      */
     public function respond(int $status, string|Generator $body = '', array $headers = [], bool $endOfStream = true): void
@@ -76,21 +94,15 @@ class HttpWorker implements HttpWorkerInterface
             return;
         }
 
-        $head = \json_encode([
-            'status'  => $status,
-            'headers' => $headers ?: (object)[],
-        ], \JSON_THROW_ON_ERROR);
-
-        $this->worker->respond(new Payload($body, $head, $endOfStream));
+        /** @psalm-suppress TooManyArguments */
+        $this->worker->respond($this->createRespondPayload($status, $body, $headers, $endOfStream), static::$codec);
     }
 
+    /**
+     * @param array<array-key, array<array-key, string>> $headers
+     */
     private function respondStream(int $status, Generator $body, array $headers = [], bool $endOfStream = true): void
     {
-        $head = \json_encode([
-            'status'  => $status,
-            'headers' => $headers ?: (object)[],
-        ], \JSON_THROW_ON_ERROR);
-
         $worker = $this->worker instanceof StreamWorkerInterface
             ? $this->worker->withStreamMode()
             : $this->worker;
@@ -103,7 +115,11 @@ class HttpWorker implements HttpWorkerInterface
                     // We don't need to send an empty frame if the stream is not ended
                     return;
                 }
-                $worker->respond(new Payload($content, $head, $endOfStream));
+                /** @psalm-suppress TooManyArguments */
+                $worker->respond(
+                    $this->createRespondPayload($status, $content, $headers, $endOfStream),
+                    static::$codec
+                );
                 break;
             }
 
@@ -117,9 +133,11 @@ class HttpWorker implements HttpWorkerInterface
                 return;
             }
 
-            // Send a chunk of data
-            $worker->respond(new Payload($content, $head, false));
-            $head = null;
+            /**
+             * Send a chunk of data
+             * @psalm-suppress TooManyArguments
+             */
+            $worker->respond($this->createRespondPayload($status, $content, $headers, false), static::$codec);
 
             try {
                 $body->next();
@@ -134,7 +152,7 @@ class HttpWorker implements HttpWorkerInterface
     /**
      * @param RequestContext $context
      */
-    private function createRequest(string $body, array $context): Request
+    private function arrayToRequest(string $body, array $context): Request
     {
         \parse_str($context['rawQuery'], $query);
         return new Request(
@@ -154,6 +172,37 @@ class HttpWorker implements HttpWorkerInterface
         );
     }
 
+    private function requestFromProto(string $body, RequestProto $message): Request
+    {
+        /** @var UploadedFilesList $uploads */
+        $uploads = \json_decode($message->getUploads(), true) ?? [];
+        $headers = $this->headerValueToArray($message->getHeader());
+
+        \parse_str($message->getRawQuery(), $query);
+        /** @psalm-suppress ArgumentTypeCoercion, MixedArgumentTypeCoercion */
+        return new Request(
+            remoteAddr: $message->getRemoteAddr(),
+            protocol: $message->getProtocol(),
+            method: $message->getMethod(),
+            uri: $message->getUri(),
+            headers: $this->filterHeaders($headers),
+            cookies: \array_map(
+                static fn(array $values) => \implode(',', $values),
+                $this->headerValueToArray($message->getCookies()),
+            ),
+            uploads: $uploads,
+            attributes: [
+                Request::PARSED_BODY_ATTRIBUTE_NAME => $message->getParsed(),
+            ] + \array_map(
+                static fn(array $values) => \array_shift($values),
+                $this->headerValueToArray($message->getAttributes()),
+            ),
+            query: $query,
+            body: $message->getParsed() && empty($body) ? \json_encode([]) : $body,
+            parsed: $message->getParsed(),
+        );
+    }
+
     /**
      * Remove all non-string and empty-string keys
      *
@@ -164,7 +213,7 @@ class HttpWorker implements HttpWorkerInterface
     {
         foreach ($headers as $key => $_) {
             if (!\is_string($key) || $key === '') {
-                // ignore invalid header names or values (otherwise, the worker will be crashed)
+                // ignore invalid header names or values (otherwise, the worker might be crashed)
                 // @see: <https://git.io/JzjgJ>
                 unset($headers[$key]);
             }
@@ -172,5 +221,53 @@ class HttpWorker implements HttpWorkerInterface
 
         /** @var HeadersList $headers */
         return $headers;
+    }
+
+    /**
+     * @param \Traversable<non-empty-string, HeaderValue> $message
+     */
+    private function headerValueToArray(\Traversable $message): array
+    {
+        $result = [];
+        /**
+         * @var non-empty-string $key
+         * @var HeaderValue $value
+         */
+        foreach ($message as $key => $value) {
+            $result[$key] = \iterator_to_array($value->getValue());
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<array-key, array<array-key, string>> $headers
+     * @return array<non-empty-string, HeaderValue>
+     */
+    private function arrayToHeaderValue(array $headers = []): array
+    {
+        $result = [];
+        /**
+         * @var non-empty-string $key
+         * @var array<array-key, string> $value
+         */
+        foreach ($headers as $key => $value) {
+            $result[$key] = new HeaderValue(['value' => $value]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<array-key, array<array-key, string>> $headers
+     */
+    private function createRespondPayload(int $status, string $body, array $headers = [], bool $eos = true): Payload
+    {
+        $head = static::$codec === Frame::CODEC_PROTO
+            ? (new Response(['status' => $status, 'headers' => $this->arrayToHeaderValue($headers)]))
+                ->serializeToString()
+            : \json_encode(['status' => $status, 'headers' => $headers ?: (object)[]], \JSON_THROW_ON_ERROR);
+
+        return new Payload(body: $body, header: $head, eos: $eos);
     }
 }
