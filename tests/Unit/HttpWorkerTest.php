@@ -30,7 +30,8 @@ final class HttpWorkerTest extends TestCase
         'uri' => 'http://localhost',
         'attributes' => [Request::PARSED_BODY_ATTRIBUTE_NAME => false],
         'query' => ['first' => 'value', 'arr' => ['foo bar', 'baz']],
-        'parsed' => false
+        'parsed' => false,
+        'body' => 'foo'
     ];
 
     #[DataProvider('requestDataProvider')]
@@ -39,7 +40,7 @@ final class HttpWorkerTest extends TestCase
         $worker = $this->createMock(WorkerInterface::class);
         $worker->expects($this->once())
             ->method('waitPayload')
-            ->willReturn(new Payload(null, \json_encode($header)));
+            ->willReturn(new Payload('foo', \json_encode($header)));
 
         $worker = new HttpWorker($worker);
 
@@ -54,7 +55,7 @@ final class HttpWorkerTest extends TestCase
         $worker = $this->createMock(WorkerInterface::class);
         $worker->expects($this->once())
             ->method('waitPayload')
-            ->willReturn(new Payload(null, $request->serializeToString()));
+            ->willReturn(new Payload('foo', $request->serializeToString()));
 
         $worker = new HttpWorker($worker);
 
