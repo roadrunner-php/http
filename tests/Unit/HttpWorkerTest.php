@@ -7,6 +7,8 @@ namespace Spiral\RoadRunner\Tests\Http\Unit;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RoadRunner\HTTP\DTO\V1\HeaderValue;
+use RoadRunner\HTTP\DTO\V1\Response;
+use Spiral\Goridge\Frame;
 use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Http\Request;
 use Spiral\RoadRunner\Payload;
@@ -73,6 +75,64 @@ final class HttpWorkerTest extends TestCase
         $worker = new HttpWorker($worker);
 
         $this->assertEquals(null, $worker->waitRequest());
+    }
+
+    public function testEmptyBodyShouldBeConvertedIntoEmptyArrayWithParsedTrue(): void
+    {
+        $request = self::createProtoRequest(\array_merge(self::REQUIRED_REQUEST_DATA, ['parsed' => true]));
+
+        $worker = $this->createMock(WorkerInterface::class);
+        $worker->expects($this->once())
+            ->method('waitPayload')
+            ->willReturn(new Payload('', $request->serializeToString()));
+
+        $worker = new HttpWorker($worker);
+
+        $request = $worker->waitRequest();
+        $this->assertSame([], $request->getParsedBody());
+    }
+
+    public function testRespondUnableToSendBodyWithInfoStatusException(): void
+    {
+        $worker = new HttpWorker($this->createMock(WorkerInterface::class));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unable to send a body with informational status code.');
+        $worker->respond(100, 'foo');
+    }
+
+    public function testRespondWithProtoCodec(): void
+    {
+        $expectedHeader = new Response([
+            'status' => 200,
+            'headers' => ['Content-Type' => new HeaderValue(['value' => ['application/x-www-form-urlencoded']])],
+        ]);
+
+        $worker = $this->createMock(WorkerInterface::class);
+        $worker->expects($this->once())
+            ->method('respond')
+            ->with(new Payload('foo', $expectedHeader->serializeToString()), Frame::CODEC_PROTO);
+
+        (new \ReflectionProperty(HttpWorker::class, 'codec'))->setValue(Frame::CODEC_PROTO);
+        $worker = new HttpWorker($worker);
+
+        $worker->respond(200, 'foo', ['Content-Type' => ['application/x-www-form-urlencoded']]);
+    }
+
+    public function testRespondWithJsonCodec(): void
+    {
+        $worker = $this->createMock(WorkerInterface::class);
+        $worker->expects($this->once())
+            ->method('respond')
+            ->with(new Payload('foo', \json_encode([
+                'status' => 200,
+                'headers' => ['Content-Type' => ['application/x-www-form-urlencoded']]
+            ])), Frame::CODEC_JSON);
+
+        (new \ReflectionProperty(HttpWorker::class, 'codec'))->setValue(Frame::CODEC_JSON);
+        $worker = new HttpWorker($worker);
+
+        $worker->respond(200, 'foo', ['Content-Type' => ['application/x-www-form-urlencoded']]);
     }
 
     public static function requestDataProvider(): \Traversable
