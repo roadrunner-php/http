@@ -31,6 +31,14 @@ with much greater performance and flexibility.
 This repository contains the codebase PSR-7 PHP workers.
 Check [spiral/roadrunner](https://github.com/spiral/roadrunner) to get application server.
 
+## Requirements:
+
+Ensure that your server is configured with the following PHP versions and extensions:
+
+- PHP >=8.1
+- ext-protobuf: This extension is optional but **highly recommended for installation**.
+  Without it, performance may be up to 50% lower.
+- RoadRunner ^2023.3
 
 ## Installation:
 
