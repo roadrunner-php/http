@@ -304,6 +304,10 @@ final class HttpWorkerTest extends TestCase
                 'X-Test2' => new HeaderValue(['value' => ['foo']]),
             ]
         ];
+        yield [
+            ['Content-Type' => 'application/x-www-form-urlencoded'],
+            ['Content-Type' => new HeaderValue(['value' => ['application/x-www-form-urlencoded']])]
+        ];
     }
 
     private static function createProtoRequest(array $values): \RoadRunner\HTTP\DTO\V1\Request
