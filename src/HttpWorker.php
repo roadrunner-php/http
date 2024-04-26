@@ -252,7 +252,10 @@ class HttpWorker implements HttpWorkerInterface
          * @var array<array-key, string> $value
          */
         foreach ($headers as $key => $value) {
-            $result[$key] = new HeaderValue(['value' => $value]);
+            $value = \array_filter($value, static fn (mixed $v): bool => \is_string($v));
+            if ($value !== []) {
+                $result[$key] = new HeaderValue(['value' => $value]);
+            }
         }
 
         return $result;

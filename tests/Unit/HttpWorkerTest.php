@@ -119,6 +119,22 @@ final class HttpWorkerTest extends TestCase
         $worker->respond(200, 'foo', ['Content-Type' => ['application/x-www-form-urlencoded']]);
     }
 
+    #[DataProvider('headersDataProvider')]
+    public function testRespondWithProtoCodecWithHeaders(array $headers, array $expected): void
+    {
+        $expectedHeader = new Response(['status' => 200, 'headers' => $expected]);
+
+        $worker = $this->createMock(WorkerInterface::class);
+        $worker->expects($this->once())
+            ->method('respond')
+            ->with(new Payload('foo', $expectedHeader->serializeToString()), Frame::CODEC_PROTO);
+
+        (new \ReflectionProperty(HttpWorker::class, 'codec'))->setValue(Frame::CODEC_PROTO);
+        $worker = new HttpWorker($worker);
+
+        $worker->respond(200, 'foo', $headers);
+    }
+
     public function testRespondWithJsonCodec(): void
     {
         $worker = $this->createMock(WorkerInterface::class);
@@ -260,6 +276,34 @@ final class HttpWorkerTest extends TestCase
     {
         yield [null];
         yield [new Payload(null, null)];
+    }
+
+    public static function headersDataProvider(): \Traversable
+    {
+        yield [
+            ['Content-Type' => ['application/x-www-form-urlencoded']],
+            ['Content-Type' => new HeaderValue(['value' => ['application/x-www-form-urlencoded']])]
+        ];
+        yield [
+            ['Content-Type' => ['application/x-www-form-urlencoded'], 'X-Test' => ['foo', 'bar']],
+            [
+                'Content-Type' => new HeaderValue(['value' => ['application/x-www-form-urlencoded']]),
+                'X-Test' => new HeaderValue(['value' => ['foo', 'bar']]),
+            ]
+        ];
+        yield [['Content-Type' => [null]], []];
+        yield [['Content-Type' => [1]], []];
+        yield [['Content-Type' => [true]], []];
+        yield [['Content-Type' => [false]], []];
+        yield [['Content-Type' => [new \stdClass()]], []];
+        yield [['Content-Type' => [1.5]], []];
+        yield [
+            ['X-Test' => ['foo', 'bar'], 'X-Test2' => ['foo', null], 'X-Test3' => [null, 1]],
+            [
+                'X-Test' => new HeaderValue(['value' => ['foo', 'bar']]),
+                'X-Test2' => new HeaderValue(['value' => ['foo']]),
+            ]
+        ];
     }
 
     private static function createProtoRequest(array $values): \RoadRunner\HTTP\DTO\V1\Request
