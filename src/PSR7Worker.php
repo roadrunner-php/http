@@ -32,8 +32,6 @@ class PSR7Worker implements PSR7WorkerInterface
 
     private readonly HttpWorker $httpWorker;
 
-    private readonly array $originalServer;
-
     /**
      * @var string[] Valid values for HTTP protocol version
      */
@@ -44,9 +42,9 @@ class PSR7Worker implements PSR7WorkerInterface
         private readonly ServerRequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
         private readonly UploadedFileFactoryInterface $uploadsFactory,
+        private readonly ConfiguratorSever $configuratorServer = new ConfiguratorSever(),
     ) {
         $this->httpWorker = new HttpWorker($worker);
-        $this->originalServer = $_SERVER;
     }
 
     public function getWorker(): WorkerInterface
@@ -69,7 +67,7 @@ class PSR7Worker implements PSR7WorkerInterface
             return null;
         }
 
-        $_SERVER = $this->configureServer($httpRequest);
+        $_SERVER = $this->configuratorServer->configure($httpRequest);
 
         return $this->mapRequest($httpRequest, $_SERVER);
     }
@@ -115,45 +113,6 @@ class PSR7Worker implements PSR7WorkerInterface
             $sum += \strlen($chunk);
             yield $chunk;
         }
-    }
-
-    /**
-     * Returns altered copy of _SERVER variable. Sets ip-address,
-     * request-time and other values.
-     *
-     * @return non-empty-array<array-key|string, mixed|string>
-     */
-    protected function configureServer(Request $request): array
-    {
-        $server = $this->originalServer;
-
-        $server['REQUEST_URI'] = $request->uri;
-        $server['REQUEST_TIME'] = $this->timeInt();
-        $server['REQUEST_TIME_FLOAT'] = $this->timeFloat();
-        $server['REMOTE_ADDR'] = $request->getRemoteAddr();
-        $server['REQUEST_METHOD'] = $request->method;
-
-        $server['HTTP_USER_AGENT'] = '';
-        foreach ($request->headers as $key => $value) {
-            $key = \strtoupper(\str_replace('-', '_', $key));
-            if (\in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'])) {
-                $server[$key] = \implode(', ', $value);
-            } else {
-                $server['HTTP_' . $key] = \implode(', ', $value);
-            }
-        }
-
-        return $server;
-    }
-
-    protected function timeInt(): int
-    {
-        return \time();
-    }
-
-    protected function timeFloat(): float
-    {
-        return \microtime(true);
     }
 
     /**
