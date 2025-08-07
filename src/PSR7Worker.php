@@ -128,11 +128,19 @@ class PSR7Worker implements PSR7WorkerInterface
         return $_SERVER;
     }
 
+
+    /**
+     * @deprecated
+     */
     protected function timeInt(): int
     {
         return \time();
     }
 
+
+    /**
+     * @deprecated
+     */
     protected function timeFloat(): float
     {
         return \microtime(true);
