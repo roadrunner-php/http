@@ -42,7 +42,7 @@ class PSR7Worker implements PSR7WorkerInterface
         private readonly ServerRequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
         private readonly UploadedFileFactoryInterface $uploadsFactory,
-        private readonly ConfiguratorSever $configuratorServer = new ConfiguratorSever(),
+        private readonly ConfiguratorServer $configuratorServer = new ConfiguratorServer(),
     ) {
         $this->httpWorker = new HttpWorker($worker);
     }

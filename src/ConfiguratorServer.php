@@ -7,7 +7,7 @@ namespace Spiral\RoadRunner\Http;
 use function time;
 use function microtime;
 
-class ConfiguratorSever
+class ConfiguratorServer
 {
     /**
      * Returns altered copy of _SERVER variable. Sets ip-address,
