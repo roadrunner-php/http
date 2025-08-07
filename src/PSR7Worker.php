@@ -32,6 +32,7 @@ class PSR7Worker implements PSR7WorkerInterface
 
     private readonly HttpWorker $httpWorker;
 
+
     /**
      * @var string[] Valid values for HTTP protocol version
      */
@@ -42,7 +43,6 @@ class PSR7Worker implements PSR7WorkerInterface
         private readonly ServerRequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
         private readonly UploadedFileFactoryInterface $uploadsFactory,
-        private readonly ConfiguratorServer $configuratorServer = new ConfiguratorServer(),
     ) {
         $this->httpWorker = new HttpWorker($worker);
     }
@@ -67,7 +67,7 @@ class PSR7Worker implements PSR7WorkerInterface
             return null;
         }
 
-        $_SERVER = $this->configuratorServer->configure($httpRequest);
+        $_SERVER = $this->configureServer($httpRequest);
 
         return $this->mapRequest($httpRequest, $_SERVER);
     }
@@ -113,6 +113,29 @@ class PSR7Worker implements PSR7WorkerInterface
             $sum += \strlen($chunk);
             yield $chunk;
         }
+    }
+
+    /**
+     * Returns altered copy of _SERVER variable. Sets ip-address,
+     * request-time and other values.
+     *
+     * @return non-empty-array<array-key|string, mixed|string>
+     */
+    protected function configureServer(Request $request): array
+    {
+        GlobalState::populateServer($request);
+
+        return $_SERVER;
+    }
+
+    protected function timeInt(): int
+    {
+        return \time();
+    }
+
+    protected function timeFloat(): float
+    {
+        return \microtime(true);
     }
 
     /**
