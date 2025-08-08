@@ -19,31 +19,33 @@ final class GlobalState
      */
     public static function populateServer(Request $request): array
     {
-        static $server = [];
+        static $originalServer = null;
 
-        if ([] == $server) {
-            $server = $_SERVER;
+        if ($originalServer == null) {
+            $originalServer = $_SERVER;
         }
 
-        $server['REQUEST_URI'] = $request->uri;
-        $server['REQUEST_TIME'] = time();
-        $server['REQUEST_TIME_FLOAT'] = microtime(true);
-        $server['REMOTE_ADDR'] = $request->getRemoteAddr();
-        $server['REQUEST_METHOD'] = $request->method;
-        $server['HTTP_USER_AGENT'] = '';
+        $newServer = $originalServer;
+
+        $newServer['REQUEST_URI'] = $request->uri;
+        $newServer['REQUEST_TIME'] = time();
+        $newServer['REQUEST_TIME_FLOAT'] = microtime(true);
+        $newServer['REMOTE_ADDR'] = $request->getRemoteAddr();
+        $newServer['REQUEST_METHOD'] = $request->method;
+        $newServer['HTTP_USER_AGENT'] = '';
 
         foreach ($request->headers as $key => $value) {
             $key = strtoupper(str_replace('-', '_', $key));
 
             if ($key == 'CONTENT_TYPE' || $key == 'CONTENT_LENGTH') {
-                $server[$key] = implode(', ', $value);
+                $newServer[$key] = implode(', ', $value);
 
                 continue;
             }
 
-            $server['HTTP_' . $key] = implode(', ', $value);
+            $newServer['HTTP_' . $key] = implode(', ', $value);
         }
 
-        return $server;
+        return $newServer;
     }
 }

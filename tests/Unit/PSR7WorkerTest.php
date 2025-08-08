@@ -2,61 +2,65 @@
 
 declare(strict_types=1);
 
-namespace Spiral\RoadRunner\Tests\Http\Unit;
-
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Spiral\Goridge\Frame;
-use Spiral\RoadRunner\Http\HttpWorker;
+use Spiral\RoadRunner\Http\GlobalState;
 use Spiral\RoadRunner\Http\PSR7Worker;
 use Spiral\RoadRunner\Tests\Http\Unit\Stub\TestRelay;
 use Spiral\RoadRunner\Worker;
 
+
+#[CoversClass(PSR7Worker::class)]
+#[CoversClass(GlobalState::class)]
 final class PSR7WorkerTest extends TestCase
 {
-    /**
+    /***
      * @param array $headers
-     *
-     * @dataProvider testStateLeakDataProvider
      */
-    public function testStateLeak(array $headers): void
+    public function testStateServerLeak(): void
     {
         $psrFactory = new Psr17Factory();
         $relay      = new TestRelay();
-
-        $body = [
-            'headers' => $headers,
-            'rawQuery' => '',
-            'remoteAddr' => '127.0.0.1',
-            'protocol' => 'HTTP/1.1',
-            'method' => 'GET',
-            'uri' => 'http://localhost',
-            'parsed' => false,
-        ];
-
-        $head = (string)\json_encode($body, \JSON_THROW_ON_ERROR);
-        $frame = new Frame($head .'test', [\strlen($head)]);
-
-        $relay->addFrames($frame);
-
-        $psrWorker = new PSR7Worker(
+        $psrWorker  = new PSR7Worker(
             new Worker($relay),
             $psrFactory,
             $psrFactory,
             $psrFactory,
         );
 
-        $psrWorker->waitRequest();
+        //dataProvider is always random and we need to keep the order
+        $fixtures = [
+            [['Content-Type' => ['application/html'], 'Connection' => ['keep-alive']], ['REQUEST_URI' => 'http://localhost', 'REMOTE_ADDR' => '127.0.0.1', 'REQUEST_METHOD' => 'GET', 'HTTP_USER_AGENT' => '', 'CONTENT_TYPE' => 'application/html', 'HTTP_CONNECTION' => 'keep-alive',]],
+            [['Content-Type' => ['application/json']], ['REQUEST_URI' => 'http://localhost', 'REMOTE_ADDR' => '127.0.0.1', 'REQUEST_METHOD' => 'GET', 'HTTP_USER_AGENT' => '', 'CONTENT_TYPE' => 'application/json']],
+        ];
 
+        foreach ($fixtures as [$headers, $expectedServer]) {
+            $body = [
+                'headers' => $headers,
+                'rawQuery' => '',
+                'remoteAddr' => '127.0.0.1',
+                'protocol' => 'HTTP/1.1',
+                'method' => 'GET',
+                'uri' => 'http://localhost',
+                'parsed' => false,
+            ];
 
-        var_dump($_SERVER);
-    }
+            $head = (string)\json_encode($body, \JSON_THROW_ON_ERROR);
+            $frame = new Frame($head .'test', [\strlen($head)]);
 
+            $relay->addFrames($frame);
 
-    public static function testStateLeakDataProvider(): iterable
-    {
-        yield [['Content-Type' => ['application/json'], 'Accept' => ['application/html']]];
-        yield [['Content-Type' => ['application/json']]];
+            $_SERVER = [];
+
+            $psrWorker->waitRequest();
+
+            unset($_SERVER['REQUEST_TIME']);
+            unset($_SERVER['REQUEST_TIME_FLOAT']);
+
+            self::assertEquals($expectedServer, $_SERVER);
+        }
     }
 
 
