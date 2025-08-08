@@ -76,6 +76,7 @@ class HttpWorker implements HttpWorkerInterface
         /** @var RequestContext $context */
         $context = \json_decode($payload->header, true, 512, \JSON_THROW_ON_ERROR);
 
+
         return $this->arrayToRequest($payload->body, $context);
     }
 

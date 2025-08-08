@@ -119,13 +119,13 @@ class PSR7Worker implements PSR7WorkerInterface
      * Returns altered copy of _SERVER variable. Sets ip-address,
      * request-time and other values.
      *
+     * @deprecated
+     *
      * @return non-empty-array<array-key|string, mixed|string>
      */
     protected function configureServer(Request $request): array
     {
-        GlobalState::populateServer($request);
-
-        return $_SERVER;
+        return GlobalState::populateServer($request);
     }
 
 
