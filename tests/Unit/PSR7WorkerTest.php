@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunClassInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use Spiral\Goridge\Frame;
 use Spiral\RoadRunner\Http\GlobalState;
@@ -14,6 +15,7 @@ use Spiral\RoadRunner\Worker;
 
 #[CoversClass(PSR7Worker::class)]
 #[CoversClass(GlobalState::class)]
+#[RunClassInSeparateProcess]
 final class PSR7WorkerTest extends TestCase
 {
     /***

@@ -15,10 +15,11 @@ final class GlobalState
     /**
      * Sets ip-address, request-time and other values.
      *
-     * @return non-empty-array<array-key|string, mixed|string>
+     * @return  non-empty-array<array-key|string, mixed|string>
      */
     public static function populateServer(Request $request): array
     {
+        /** @var non-empty-array<array-key|string, mixed|string>|null $originalServer */
         static $originalServer = null;
 
         if ($originalServer == null) {

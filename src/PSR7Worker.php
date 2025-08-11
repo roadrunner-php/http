@@ -58,6 +58,8 @@ class PSR7Worker implements PSR7WorkerInterface
     }
 
     /**
+     * @psalm-suppress DeprecatedMethod
+     *
      * @throws \JsonException
      */
     public function waitRequest(): ?ServerRequestInterface
