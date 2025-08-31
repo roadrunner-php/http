@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace Spiral\RoadRunner\Tests\Http\Unit;
+
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunClassInSeparateProcess;
@@ -18,9 +20,6 @@ use Spiral\RoadRunner\Worker;
 #[RunClassInSeparateProcess]
 final class PSR7WorkerTest extends TestCase
 {
-    /***
-     * @param array $headers
-     */
     public function testStateServerLeak(): void
     {
         $psrFactory = new Psr17Factory();
@@ -34,10 +33,35 @@ final class PSR7WorkerTest extends TestCase
 
         //dataProvider is always random and we need to keep the order
         $fixtures = [
-            [['Content-Type' => ['application/html'], 'Connection' => ['keep-alive']], ['REQUEST_URI' => 'http://localhost', 'REMOTE_ADDR' => '127.0.0.1', 'REQUEST_METHOD' => 'GET', 'HTTP_USER_AGENT' => '', 'CONTENT_TYPE' => 'application/html', 'HTTP_CONNECTION' => 'keep-alive',]],
-            [['Content-Type' => ['application/json']], ['REQUEST_URI' => 'http://localhost', 'REMOTE_ADDR' => '127.0.0.1', 'REQUEST_METHOD' => 'GET', 'HTTP_USER_AGENT' => '', 'CONTENT_TYPE' => 'application/json']],
+            [
+                [
+                    'Content-Type' => ['application/html'],
+                    'Connection' => ['keep-alive']
+                ],
+                [
+                    'REQUEST_URI' => 'http://localhost',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                    'REQUEST_METHOD' => 'GET',
+                    'HTTP_USER_AGENT' => '',
+                    'CONTENT_TYPE' => 'application/html',
+                    'HTTP_CONNECTION' => 'keep-alive',
+                ],
+            ],
+            [
+                [
+                    'Content-Type' => ['application/json']
+                ],
+                [
+                    'REQUEST_URI' => 'http://localhost',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                    'REQUEST_METHOD' => 'GET',
+                    'HTTP_USER_AGENT' => '',
+                    'CONTENT_TYPE' => 'application/json'
+                ],
+            ],
         ];
 
+        $_SERVER = [];
         foreach ($fixtures as [$headers, $expectedServer]) {
             $body = [
                 'headers' => $headers,
@@ -53,8 +77,6 @@ final class PSR7WorkerTest extends TestCase
             $frame = new Frame($head .'test', [\strlen($head)]);
 
             $relay->addFrames($frame);
-
-            $_SERVER = [];
 
             $psrWorker->waitRequest();
 
