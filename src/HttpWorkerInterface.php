@@ -6,7 +6,6 @@ namespace Spiral\RoadRunner\Http;
 
 use Generator;
 use Spiral\RoadRunner\WorkerAwareInterface;
-use Stringable;
 
 /**
  * @psalm-import-type HeadersList from Request
@@ -22,7 +21,7 @@ interface HttpWorkerInterface extends WorkerAwareInterface
      * Send response to the application server.
      *
      * @param int $status Http status code
-     * @param Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null>|string $body Body of response.
+     * @param \Generator<mixed, scalar|\Stringable, mixed, \Stringable|scalar|null>|string $body Body of response.
      *        If the body is a generator, then each yielded value will be sent as a separated stream chunk.
      *        Returned value will be sent as a last stream package.
      *        Note: Stream response is supported by RoadRunner since version 2023.3
@@ -30,5 +29,5 @@ interface HttpWorkerInterface extends WorkerAwareInterface
      *        message's headers. Each key MUST be a header name, and each value MUST be an array of strings for
      *        that header.
      */
-    public function respond(int $status, string|Generator $body, array $headers = []): void;
+    public function respond(int $status, string|\Generator $body, array $headers = []): void;
 }

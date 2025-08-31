@@ -15,11 +15,6 @@ final class StreamResponseTest extends TestCase
     private TestRelay $relay;
     private Worker $worker;
 
-    protected function tearDown(): void
-    {
-        unset($this->relay, $this->worker);
-    }
-
     /**
      * Regular case
      */
@@ -71,6 +66,11 @@ final class StreamResponseTest extends TestCase
         })());
 
         self::assertSame('Hello,', $this->getRelay()->getReceivedBody());
+    }
+
+    protected function tearDown(): void
+    {
+        unset($this->relay, $this->worker);
     }
 
     private function getRelay(): TestRelay

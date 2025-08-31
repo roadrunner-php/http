@@ -1,20 +1,9 @@
-# Composer lock file
-composer.lock
-
-# IDEs
-/.idea
-/.vscode
-
-# Vendors
-/vendor
-**/vendor
-
-# Temp dirs & trash
-/tests/server*
-clover*
-cover*
-.DS_Store
-*.cache
-
-.phpunit.cache/
-.phpunit.result.cache
+/.*
+!/.github/
+!/.php-cs-fixer.dist.php
+!/.editorconfig
+!/.gitattributes
+/runtime/
+/vendor/
+/composer.lock
+*.log

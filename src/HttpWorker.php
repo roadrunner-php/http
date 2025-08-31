@@ -35,6 +35,8 @@ use Spiral\RoadRunner\WorkerInterface;
  * }
  *
  * @see Request
+ *
+ * @api
  */
 class HttpWorker implements HttpWorkerInterface
 {
@@ -42,8 +44,7 @@ class HttpWorker implements HttpWorkerInterface
 
     public function __construct(
         private readonly WorkerInterface $worker,
-    ) {
-    }
+    ) {}
 
     public function getWorker(): WorkerInterface
     {
@@ -83,13 +84,13 @@ class HttpWorker implements HttpWorkerInterface
      * @param array<array-key, array<array-key, string>> $headers
      * @throws \JsonException
      */
-    public function respond(int $status, string|Generator $body = '', array $headers = [], bool $endOfStream = true): void
+    public function respond(int $status, string|\Generator $body = '', array $headers = [], bool $endOfStream = true): void
     {
         if ($status < 200 && $status >= 100 && $body !== '') {
             throw new \InvalidArgumentException('Unable to send a body with informational status code.');
         }
 
-        if ($body instanceof Generator) {
+        if ($body instanceof \Generator) {
             $this->respondStream($status, $body, $headers, $endOfStream);
             return;
         }
@@ -101,7 +102,7 @@ class HttpWorker implements HttpWorkerInterface
     /**
      * @param array<array-key, array<array-key, string>> $headers
      */
-    private function respondStream(int $status, Generator $body, array $headers = [], bool $endOfStream = true): void
+    private function respondStream(int $status, \Generator $body, array $headers = [], bool $endOfStream = true): void
     {
         $worker = $this->worker instanceof StreamWorkerInterface
             ? $this->worker->withStreamMode()
@@ -110,7 +111,7 @@ class HttpWorker implements HttpWorkerInterface
         do {
             if (!$body->valid()) {
                 // End of generator
-                $content = (string)$body->getReturn();
+                $content = (string) $body->getReturn();
                 if ($endOfStream === false && $content === '') {
                     // We don't need to send an empty frame if the stream is not ended
                     return;
@@ -118,12 +119,12 @@ class HttpWorker implements HttpWorkerInterface
                 /** @psalm-suppress TooManyArguments */
                 $worker->respond(
                     $this->createRespondPayload($status, $content, $headers, $endOfStream),
-                    static::$codec
+                    static::$codec,
                 );
                 break;
             }
 
-            $content = (string)$body->current();
+            $content = (string) $body->current();
             if ($worker->getPayload(StreamStop::class) !== null) {
                 $body->throw(new StreamStoppedException());
 
@@ -160,12 +161,12 @@ class HttpWorker implements HttpWorkerInterface
             protocol: $context['protocol'],
             method: $context['method'],
             uri: $context['uri'],
-            headers: $this->filterHeaders((array)($context['headers'] ?? [])),
-            cookies: (array)($context['cookies'] ?? []),
-            uploads: (array)($context['uploads'] ?? []),
+            headers: $this->filterHeaders((array) ($context['headers'] ?? [])),
+            cookies: (array) ($context['cookies'] ?? []),
+            uploads: (array) ($context['uploads'] ?? []),
             attributes: [
                 Request::PARSED_BODY_ATTRIBUTE_NAME => $context['parsed'],
-            ] + (array)($context['attributes'] ?? []),
+            ] + (array) ($context['attributes'] ?? []),
             query: $query,
             body: $body,
             parsed: $context['parsed'],
@@ -253,7 +254,7 @@ class HttpWorker implements HttpWorkerInterface
          */
         foreach ($headers as $key => $value) {
             /** @psalm-suppress DocblockTypeContradiction */
-            $value = \array_filter(\is_array($value) ? $value : [$value], static fn (mixed $v): bool => \is_string($v));
+            $value = \array_filter(\is_array($value) ? $value : [$value], static fn(mixed $v): bool => \is_string($v));
             if ($value !== []) {
                 $result[$key] = new HeaderValue(['value' => $value]);
             }
@@ -270,7 +271,7 @@ class HttpWorker implements HttpWorkerInterface
         $head = static::$codec === Frame::CODEC_PROTO
             ? (new Response(['status' => $status, 'headers' => $this->arrayToHeaderValue($headers)]))
                 ->serializeToString()
-            : \json_encode(['status' => $status, 'headers' => $headers ?: (object)[]], \JSON_THROW_ON_ERROR);
+            : \json_encode(['status' => $status, 'headers' => $headers ?: (object) []], \JSON_THROW_ON_ERROR);
 
         return new Payload(body: $body, header: $head, eos: $eos);
     }

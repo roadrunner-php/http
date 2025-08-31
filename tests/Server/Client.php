@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Tests\Http\Server;
 
-use Fiber;
 use Spiral\Goridge\Frame;
 use Spiral\RoadRunner\Tests\Http\Server\Command\BaseCommand;
 use Spiral\RoadRunner\Tests\Http\Server\Command\StreamStop;
@@ -19,7 +18,6 @@ class Client
     /** @var string[] */
     private array $writeQueue = [];
 
-    /** @var string */
     private string $readBuffer = '';
 
     public function __construct(
@@ -27,11 +25,6 @@ class Client
     ) {
         $this->socket = $socket;
         \socket_set_nonblock($this->socket);
-    }
-
-    public function __destruct()
-    {
-        \socket_close($this->socket);
     }
 
     public static function init(\Socket $socket): self
@@ -59,8 +52,13 @@ class Client
                 $this->writeQueue();
             }
 
-            Fiber::suspend();
+            \Fiber::suspend();
         } while (true);
+    }
+
+    public function __destruct()
+    {
+        \socket_close($this->socket);
     }
 
     private function onInit()
@@ -130,7 +128,7 @@ class Client
             }
 
             if ($data === '') {
-                Fiber::suspend();
+                \Fiber::suspend();
                 continue;
             }
 
