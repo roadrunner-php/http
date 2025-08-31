@@ -9,9 +9,11 @@ use Spiral\Goridge\Frame;
 abstract class BaseCommand
 {
     public const COMMAND_KEY = 'test-command';
+
     protected Frame $frame;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->frame = new Frame(\json_encode([self::COMMAND_KEY => static::class]));
     }
 
@@ -25,5 +27,5 @@ abstract class BaseCommand
         return Frame::packFrame($this->getResponseFrame());
     }
 
-    public abstract function getResponseFrame(): Frame;
+    abstract public function getResponseFrame(): Frame;
 }

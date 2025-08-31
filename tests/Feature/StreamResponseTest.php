@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Tests\Http\Feature;
 
-use Exception;
 use PHPUnit\Framework\TestCase;
 use Spiral\Goridge\SocketRelay;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
@@ -21,20 +20,6 @@ class StreamResponseTest extends TestCase
     private SocketRelay $relay;
     private Worker $worker;
     private $serverAddress = 'tcp://127.0.0.1:6002';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        ServerRunner::start();
-        ServerRunner::getBuffer();
-    }
-
-    protected function tearDown(): void
-    {
-        unset($this->relay, $this->worker);
-        ServerRunner::stop();
-        parent::tearDown();
-    }
 
     /**
      * Regular case
@@ -123,7 +108,7 @@ class StreamResponseTest extends TestCase
             (function () {
                 yield 'Hel';
                 yield 'lo,';
-                throw new Exception('test');
+                throw new \Exception('test');
             })(),
         );
 
@@ -161,6 +146,20 @@ class StreamResponseTest extends TestCase
         $this->getWorker()->getPayload(GetProcessId::class);
 
         $this->assertFalse($this->getWorker()->hasPayload());
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        ServerRunner::start();
+        ServerRunner::getBuffer();
+    }
+
+    protected function tearDown(): void
+    {
+        unset($this->relay, $this->worker);
+        ServerRunner::stop();
+        parent::tearDown();
     }
 
     private function getRelay(): SocketRelay
