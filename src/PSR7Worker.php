@@ -60,18 +60,24 @@ class PSR7Worker implements PSR7WorkerInterface
     /**
      * @psalm-suppress DeprecatedMethod
      *
+     * @param bool $populateServer Whether to populate $_SERVER superglobal.
+     *
      * @throws \JsonException
      */
-    public function waitRequest(): ?ServerRequestInterface
+    public function waitRequest(bool $populateServer = true): ?ServerRequestInterface
     {
         $httpRequest = $this->httpWorker->waitRequest();
         if ($httpRequest === null) {
             return null;
         }
 
-        $_SERVER = $this->configureServer($httpRequest);
+        $vars = $this->configureServer($httpRequest);
 
-        return $this->mapRequest($httpRequest, $_SERVER);
+        if ($populateServer) {
+            $_SERVER = $vars;
+        }
+
+        return $this->mapRequest($httpRequest, $vars);
     }
 
     /**
@@ -92,7 +98,7 @@ class PSR7Worker implements PSR7WorkerInterface
 
     /**
      * @return Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null> Compatible
-     *         with {@see \Spiral\RoadRunner\Http\HttpWorker::respondStream()}.
+     *         with {@see HttpWorker::respondStream}.
      */
     private function streamToGenerator(StreamInterface $stream): Generator
     {
@@ -121,15 +127,12 @@ class PSR7Worker implements PSR7WorkerInterface
      * Returns altered copy of _SERVER variable. Sets ip-address,
      * request-time and other values.
      *
-     * @deprecated
-     *
      * @return non-empty-array<array-key|string, mixed|string>
      */
     protected function configureServer(Request $request): array
     {
-        return GlobalState::populateServer($request);
+        return GlobalState::enrichServerVars($request);
     }
-
 
     /**
      * @deprecated
@@ -138,7 +141,6 @@ class PSR7Worker implements PSR7WorkerInterface
     {
         return \time();
     }
-
 
     /**
      * @deprecated

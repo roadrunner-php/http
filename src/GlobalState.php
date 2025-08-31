@@ -13,40 +13,48 @@ use function implode;
 final class GlobalState
 {
     /**
-     * Sets ip-address, request-time and other values.
-     *
-     * @return  non-empty-array<array-key|string, mixed|string>
+     * @var array<array-key, mixed> Cached state of the $_SERVER superglobal.
      */
-    public static function populateServer(Request $request): array
+    private static array $cachedServer = [];
+
+    /**
+     * Cache superglobal $_SERVER to avoid state leaks between requests.
+     */
+    public static function cacheServerVars(): void
     {
-        /** @var non-empty-array<array-key|string, mixed|string>|null $originalServer */
-        static $originalServer = null;
+        self::$cachedServer = $_SERVER;
+    }
 
-        if ($originalServer == null) {
-            $originalServer = $_SERVER;
-        }
+    /**
+     * Enrich cached $_SERVER with data from the request.
+     *
+     * @return non-empty-array<array-key, mixed> Cached $_SERVER data enriched with request data.
+     */
+    public static function enrichServerVars(Request $request): array
+    {
+        $server = self::$cachedServer;
 
-        $newServer = $originalServer;
-
-        $newServer['REQUEST_URI'] = $request->uri;
-        $newServer['REQUEST_TIME'] = time();
-        $newServer['REQUEST_TIME_FLOAT'] = microtime(true);
-        $newServer['REMOTE_ADDR'] = $request->getRemoteAddr();
-        $newServer['REQUEST_METHOD'] = $request->method;
-        $newServer['HTTP_USER_AGENT'] = '';
+        $server['REQUEST_URI'] = $request->uri;
+        $server['REQUEST_TIME'] = time();
+        $server['REQUEST_TIME_FLOAT'] = microtime(true);
+        $server['REMOTE_ADDR'] = $request->getRemoteAddr();
+        $server['REQUEST_METHOD'] = $request->method;
+        $server['HTTP_USER_AGENT'] = '';
 
         foreach ($request->headers as $key => $value) {
             $key = strtoupper(str_replace('-', '_', $key));
 
             if ($key == 'CONTENT_TYPE' || $key == 'CONTENT_LENGTH') {
-                $newServer[$key] = implode(', ', $value);
+                $server[$key] = implode(', ', $value);
 
                 continue;
             }
 
-            $newServer['HTTP_' . $key] = implode(', ', $value);
+            $server['HTTP_' . $key] = implode(', ', $value);
         }
 
-        return $newServer;
+        return $server;
     }
 }
+
+GlobalState::cacheServerVars();
