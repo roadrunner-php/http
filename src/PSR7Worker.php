@@ -32,7 +32,6 @@ class PSR7Worker implements PSR7WorkerInterface
 
     private readonly HttpWorker $httpWorker;
 
-    private readonly array $originalServer;
 
     /**
      * @var string[] Valid values for HTTP protocol version
@@ -46,7 +45,6 @@ class PSR7Worker implements PSR7WorkerInterface
         private readonly UploadedFileFactoryInterface $uploadsFactory,
     ) {
         $this->httpWorker = new HttpWorker($worker);
-        $this->originalServer = $_SERVER;
     }
 
     public function getWorker(): WorkerInterface
@@ -60,18 +58,26 @@ class PSR7Worker implements PSR7WorkerInterface
     }
 
     /**
+     * @psalm-suppress DeprecatedMethod
+     *
+     * @param bool $populateServer Whether to populate $_SERVER superglobal.
+     *
      * @throws \JsonException
      */
-    public function waitRequest(): ?ServerRequestInterface
+    public function waitRequest(bool $populateServer = true): ?ServerRequestInterface
     {
         $httpRequest = $this->httpWorker->waitRequest();
         if ($httpRequest === null) {
             return null;
         }
 
-        $_SERVER = $this->configureServer($httpRequest);
+        $vars = $this->configureServer($httpRequest);
 
-        return $this->mapRequest($httpRequest, $_SERVER);
+        if ($populateServer) {
+            $_SERVER = $vars;
+        }
+
+        return $this->mapRequest($httpRequest, $vars);
     }
 
     /**
@@ -92,7 +98,7 @@ class PSR7Worker implements PSR7WorkerInterface
 
     /**
      * @return Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null> Compatible
-     *         with {@see \Spiral\RoadRunner\Http\HttpWorker::respondStream()}.
+     *         with {@see HttpWorker::respondStream}.
      */
     private function streamToGenerator(StreamInterface $stream): Generator
     {
@@ -125,32 +131,20 @@ class PSR7Worker implements PSR7WorkerInterface
      */
     protected function configureServer(Request $request): array
     {
-        $server = $this->originalServer;
-
-        $server['REQUEST_URI'] = $request->uri;
-        $server['REQUEST_TIME'] = $this->timeInt();
-        $server['REQUEST_TIME_FLOAT'] = $this->timeFloat();
-        $server['REMOTE_ADDR'] = $request->getRemoteAddr();
-        $server['REQUEST_METHOD'] = $request->method;
-
-        $server['HTTP_USER_AGENT'] = '';
-        foreach ($request->headers as $key => $value) {
-            $key = \strtoupper(\str_replace('-', '_', $key));
-            if (\in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'])) {
-                $server[$key] = \implode(', ', $value);
-            } else {
-                $server['HTTP_' . $key] = \implode(', ', $value);
-            }
-        }
-
-        return $server;
+        return GlobalState::enrichServerVars($request);
     }
 
+    /**
+     * @deprecated
+     */
     protected function timeInt(): int
     {
         return \time();
     }
 
+    /**
+     * @deprecated
+     */
     protected function timeFloat(): float
     {
         return \microtime(true);
