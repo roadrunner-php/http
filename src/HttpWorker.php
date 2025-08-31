@@ -35,6 +35,8 @@ use Spiral\RoadRunner\WorkerInterface;
  * }
  *
  * @see Request
+ *
+ * @api
  */
 class HttpWorker implements HttpWorkerInterface
 {

@@ -18,6 +18,8 @@ use Spiral\RoadRunner\WorkerInterface;
  *
  * @psalm-import-type UploadedFile from Request
  * @psalm-import-type UploadedFilesList from Request
+ *
+ * @api
  */
 class PSR7Worker implements PSR7WorkerInterface
 {
