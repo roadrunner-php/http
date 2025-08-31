@@ -1,10 +1,9 @@
 * text=auto
 
-/.github       export-ignore
-/tests         export-ignore
-/.*            export-ignore
-/phpunit.xml*  export-ignore
-/phpstan.*     export-ignore
-/psalm.*       export-ignore
-/infection.*   export-ignore
-/codecov.*     export-ignore
+/.*                     export-ignore
+/tests                  export-ignore
+/phpunit.xml*           export-ignore
+/psalm.*                export-ignore
+/psalm-baseline.xml     export-ignore
+/infection.*            export-ignore
+/rector.php             export-ignore
