@@ -49,12 +49,11 @@ final class Request
         public readonly array $query = [],
         public readonly string $body = '',
         public readonly bool $parsed = false,
-    ) {
-    }
+    ) {}
 
     public function getRemoteAddr(): string
     {
-        return (string)($this->attributes['ipAddress'] ?? $this->remoteAddr);
+        return (string) ($this->attributes['ipAddress'] ?? $this->remoteAddr);
     }
 
     /**
@@ -63,7 +62,7 @@ final class Request
     public function getParsedBody(): ?array
     {
         if ($this->parsed) {
-            return (array)\json_decode($this->body, true, 512, \JSON_THROW_ON_ERROR);
+            return (array) \json_decode($this->body, true, 512, \JSON_THROW_ON_ERROR);
         }
 
         return null;

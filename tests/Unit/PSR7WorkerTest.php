@@ -14,7 +14,6 @@ use Spiral\RoadRunner\Http\PSR7Worker;
 use Spiral\RoadRunner\Tests\Http\Unit\Stub\TestRelay;
 use Spiral\RoadRunner\Worker;
 
-
 #[CoversClass(PSR7Worker::class)]
 #[CoversClass(GlobalState::class)]
 #[RunClassInSeparateProcess]
@@ -36,7 +35,7 @@ final class PSR7WorkerTest extends TestCase
             [
                 [
                     'Content-Type' => ['application/html'],
-                    'Connection' => ['keep-alive']
+                    'Connection' => ['keep-alive'],
                 ],
                 [
                     'REQUEST_URI' => 'http://localhost',
@@ -49,14 +48,14 @@ final class PSR7WorkerTest extends TestCase
             ],
             [
                 [
-                    'Content-Type' => ['application/json']
+                    'Content-Type' => ['application/json'],
                 ],
                 [
                     'REQUEST_URI' => 'http://localhost',
                     'REMOTE_ADDR' => '127.0.0.1',
                     'REQUEST_METHOD' => 'GET',
                     'HTTP_USER_AGENT' => '',
-                    'CONTENT_TYPE' => 'application/json'
+                    'CONTENT_TYPE' => 'application/json',
                 ],
             ],
         ];
@@ -73,8 +72,8 @@ final class PSR7WorkerTest extends TestCase
                 'parsed' => false,
             ];
 
-            $head = (string)\json_encode($body, \JSON_THROW_ON_ERROR);
-            $frame = new Frame($head .'test', [\strlen($head)]);
+            $head = (string) \json_encode($body, \JSON_THROW_ON_ERROR);
+            $frame = new Frame($head . 'test', [\strlen($head)]);
 
             $relay->addFrames($frame);
 
@@ -86,7 +85,6 @@ final class PSR7WorkerTest extends TestCase
             self::assertEquals($expectedServer, $_SERVER);
         }
     }
-
 
     protected function tearDown(): void
     {

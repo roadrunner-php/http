@@ -28,11 +28,11 @@ final class TestRelay extends Relay
         bool $stream = false,
         bool $stopStream = false,
     ): self {
-        $head = (string)\json_encode([
+        $head = (string) \json_encode([
             'status'  => $status,
             'headers' => $headers,
         ], \JSON_THROW_ON_ERROR);
-        $frame = new Frame($head .$body, [\strlen($head)]);
+        $frame = new Frame($head . $body, [\strlen($head)]);
         $frame->byte10 |= $stream ? Frame::BYTE10_STREAM : 0;
         $frame->byte10 |= $stopStream ? Frame::BYTE10_STOP : 0;
         return $this->addFrames($frame);
@@ -50,7 +50,7 @@ final class TestRelay extends Relay
 
     public function getReceivedBody(): string
     {
-        return \implode('', \array_map(static fn (Frame $frame)
+        return \implode('', \array_map(static fn(Frame $frame)
             => \substr($frame->payload, $frame->options[0]), $this->received));
     }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Http;
 
-use Generator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -13,13 +12,14 @@ use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Spiral\RoadRunner\WorkerInterface;
-use Stringable;
 
 /**
  * Manages PSR-7 request and response.
  *
  * @psalm-import-type UploadedFile from Request
  * @psalm-import-type UploadedFilesList from Request
+ *
+ * @api
  */
 class PSR7Worker implements PSR7WorkerInterface
 {
@@ -31,7 +31,6 @@ class PSR7Worker implements PSR7WorkerInterface
     public int $chunkSize = 0;
 
     private readonly HttpWorker $httpWorker;
-
 
     /**
      * @var string[] Valid values for HTTP protocol version
@@ -91,36 +90,9 @@ class PSR7Worker implements PSR7WorkerInterface
             $response->getStatusCode(),
             $this->chunkSize > 0
                 ? $this->streamToGenerator($response->getBody())
-                : (string)$response->getBody(),
-            $response->getHeaders()
+                : (string) $response->getBody(),
+            $response->getHeaders(),
         );
-    }
-
-    /**
-     * @return Generator<mixed, scalar|Stringable, mixed, Stringable|scalar|null> Compatible
-     *         with {@see HttpWorker::respondStream}.
-     */
-    private function streamToGenerator(StreamInterface $stream): Generator
-    {
-        $stream->rewind();
-        $size = $stream->getSize();
-        if ($size !== null && $size < $this->chunkSize) {
-            return (string)$stream;
-        }
-        $sum = 0;
-        while (!$stream->eof()) {
-            if ($size === null) {
-                $chunk = $stream->read($this->chunkSize);
-            } else {
-                $left = $size - $sum;
-                $chunk = $stream->read(\min($this->chunkSize, $left));
-                if ($left <= $this->chunkSize && \strlen($chunk) === $left) {
-                    return $chunk;
-                }
-            }
-            $sum += \strlen($chunk);
-            yield $chunk;
-        }
     }
 
     /**
@@ -158,7 +130,7 @@ class PSR7Worker implements PSR7WorkerInterface
         $request = $this->requestFactory->createServerRequest(
             $httpRequest->method,
             $httpRequest->uri,
-            $server
+            $server,
         );
 
         $request = $request
@@ -205,7 +177,7 @@ class PSR7Worker implements PSR7WorkerInterface
                 continue;
             }
 
-            if (\UPLOAD_ERR_OK === $file['error']) {
+            if ($file['error'] === \UPLOAD_ERR_OK) {
                 $stream = $this->streamFactory->createStreamFromFile($file['tmpName']);
             } else {
                 $stream = $this->streamFactory->createStream();
@@ -216,7 +188,7 @@ class PSR7Worker implements PSR7WorkerInterface
                 $file['size'],
                 $file['error'],
                 $file['name'],
-                $file['mime']
+                $file['mime'],
             );
         }
 
@@ -240,5 +212,32 @@ class PSR7Worker implements PSR7WorkerInterface
         }
 
         return $v;
+    }
+
+    /**
+     * @return \Generator<mixed, scalar|\Stringable, mixed, \Stringable|scalar|null> Compatible
+     *         with {@see HttpWorker::respondStream}.
+     */
+    private function streamToGenerator(StreamInterface $stream): \Generator
+    {
+        $stream->rewind();
+        $size = $stream->getSize();
+        if ($size !== null && $size < $this->chunkSize) {
+            return (string) $stream;
+        }
+        $sum = 0;
+        while (!$stream->eof()) {
+            if ($size === null) {
+                $chunk = $stream->read($this->chunkSize);
+            } else {
+                $left = $size - $sum;
+                $chunk = $stream->read(\min($this->chunkSize, $left));
+                if ($left <= $this->chunkSize && \strlen($chunk) === $left) {
+                    return $chunk;
+                }
+            }
+            $sum += \strlen($chunk);
+            yield $chunk;
+        }
     }
 }
