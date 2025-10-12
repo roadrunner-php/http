@@ -30,5 +30,5 @@ interface HttpWorkerInterface extends WorkerAwareInterface
      *        message's headers. Each key MUST be a header name, and each value MUST be an array of strings for
      *        that header.
      */
-    public function respond(int $status, string|Generator $body, array $headers = []): void;
+    public function respond(int $status, string|Generator $body, array $headers = [],  bool $endOfStream = true): void;
 }
