@@ -64,7 +64,7 @@ class HttpWorker implements HttpWorkerInterface
         }
 
         if (static::$codec === null) {
-            static::$codec = \json_validate($payload->header) ? Frame::CODEC_JSON : Frame::CODEC_PROTO;
+            static::$codec = \json_validate($payload->body) ? Frame::CODEC_JSON : Frame::CODEC_PROTO;
         }
 
         if (static::$codec === Frame::CODEC_PROTO) {
