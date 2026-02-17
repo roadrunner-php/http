@@ -38,7 +38,7 @@ use Spiral\RoadRunner\WorkerInterface;
  *
  * @api
  */
-class HttpWorker implements HttpWorkerInterface
+class HttpWorker implements HttpWorkerInterface, EndOfStreamAwareHttpWorkerInterface
 {
     private static ?int $codec = null;
 
