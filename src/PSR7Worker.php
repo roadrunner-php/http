@@ -57,8 +57,6 @@ class PSR7Worker implements PSR7WorkerInterface
     }
 
     /**
-     * @psalm-suppress DeprecatedMethod
-     *
      * @param bool $populateServer Whether to populate $_SERVER superglobal.
      *
      * @throws \JsonException
@@ -104,22 +102,6 @@ class PSR7Worker implements PSR7WorkerInterface
     protected function configureServer(Request $request): array
     {
         return GlobalState::enrichServerVars($request);
-    }
-
-    /**
-     * @deprecated
-     */
-    protected function timeInt(): int
-    {
-        return \time();
-    }
-
-    /**
-     * @deprecated
-     */
-    protected function timeFloat(): float
-    {
-        return \microtime(true);
     }
 
     /**

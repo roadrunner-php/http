@@ -28,6 +28,8 @@ interface HttpWorkerInterface extends WorkerAwareInterface
      * @param HeadersList|array<array-key, array<array-key, string>> $headers $headers An associative array of the
      *        message's headers. Each key MUST be a header name, and each value MUST be an array of strings for
      *        that header.
+     * @param bool $endOfStream End of stream.
+     *        The {@see true} value means the Payload block is last in the stream.
      */
-    public function respond(int $status, string|\Generator $body, array $headers = []): void;
+    public function respond(int $status, string|\Generator $body, array $headers = [], bool $endOfStream = true): void;
 }
