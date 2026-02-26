@@ -35,17 +35,13 @@ final class GlobalState
         $server['REQUEST_METHOD'] = $request->method;
         $server['HTTP_USER_AGENT'] = '';
 
-        $host = parse_url($request->uri, PHP_URL_HOST);
-        $port = parse_url($request->uri, PHP_URL_PORT);
+        $parts = \parse_url($uri);
 
-        if ($host != null) {
-            $server['HTTP_HOST'] = $host;
+        if (isset($parts['host'])) {
+            $server['HTTP_HOST'] = isset($parts['port'])
+                ? $parts['host'] . ':' . $parts['port'] 
+                : $parts['host'];
         }
-
-        if ($host != null && $port != null) {
-            $server['HTTP_HOST'] = $host . ':' . $port;
-        }
-
         foreach ($request->headers as $key => $value) {
             $key = \strtoupper(\str_replace('-', '_', $key));
 
