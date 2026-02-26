@@ -35,7 +35,7 @@ final class GlobalState
         $server['REQUEST_METHOD'] = $request->method;
         $server['HTTP_USER_AGENT'] = '';
 
-        $parts = \parse_url($uri);
+        $parts = \parse_url($request->uri);
 
         if (isset($parts['host'])) {
             $server['HTTP_HOST'] = isset($parts['port'])
