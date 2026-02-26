@@ -39,7 +39,7 @@ final class GlobalState
 
         if (isset($parts['host'])) {
             $server['HTTP_HOST'] = isset($parts['port'])
-                ? $parts['host'] . ':' . $parts['port'] 
+                ? $parts['host'] . ':' . $parts['port']
                 : $parts['host'];
         }
         foreach ($request->headers as $key => $value) {
