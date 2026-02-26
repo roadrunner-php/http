@@ -44,6 +44,7 @@ final class PSR7WorkerTest extends TestCase
                     'HTTP_USER_AGENT' => '',
                     'CONTENT_TYPE' => 'application/html',
                     'HTTP_CONNECTION' => 'keep-alive',
+                    'HTTP_HOST' =>   'localhost',
                 ],
             ],
             [
@@ -56,6 +57,7 @@ final class PSR7WorkerTest extends TestCase
                     'REQUEST_METHOD' => 'GET',
                     'HTTP_USER_AGENT' => '',
                     'CONTENT_TYPE' => 'application/json',
+                    'HTTP_HOST' =>   'localhost',
                 ],
             ],
         ];
