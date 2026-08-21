@@ -205,16 +205,18 @@ class HttpWorker implements HttpWorkerInterface
     }
 
     /**
-     * Normalize header names back to strings, dropping only genuinely
-     * empty ones.
+     * Drop only genuinely empty header names; keep everything else.
      *
      * A header name made up entirely of digits (e.g. "123", a valid
      * RFC 9110 token) arrives here as an `int` array key: PHP itself
      * coerces a canonical-integer string used as an array key into an
-     * int, before this method ever sees it. Casting the key back to a
-     * string recovers the original header name losslessly — PHP
-     * guarantees `(string) (int) $s === $s` for exactly the strings it
-     * coerces this way — instead of silently dropping a real header.
+     * int, before this method ever sees it. The previous implementation
+     * treated that coercion as an invalid header name and dropped it;
+     * this one keeps it. Casting the key to a string only normalizes it
+     * for the emptiness check below — reinserting it into $result still
+     * leaves it as an `int` key, because PHP coerces it back the same
+     * way. There is no plain-array representation that can hold such a
+     * header name as a string key; see {@see HeadersList} in Request.php.
      *
      * An empty string is still rejected: that is the actual malformed
      * input this method exists to guard against (otherwise, the worker

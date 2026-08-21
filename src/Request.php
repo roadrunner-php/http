@@ -17,7 +17,11 @@ use JetBrains\PhpStorm\Immutable;
  *      mime:       string
  * }
  *
- * @psalm-type HeadersList = array<non-empty-string, array<array-key, string>>
+ * Header names are keyed by `array-key`, not `non-empty-string`: a header
+ * name made up entirely of digits (e.g. "123") is a valid RFC 9110 token,
+ * but PHP always coerces such a key into an `int` when it's used as an
+ * array key, so it cannot be represented as a string here.
+ * @psalm-type HeadersList = array<array-key, array<array-key, string>>
  * @psalm-type AttributesList = array<string, mixed>
  * @psalm-type QueryArgumentsList = array
  * @psalm-type CookiesList = array<string, string>
