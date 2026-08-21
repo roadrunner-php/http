@@ -205,23 +205,42 @@ class HttpWorker implements HttpWorkerInterface
     }
 
     /**
-     * Remove all non-string and empty-string keys
+     * Normalize header names back to strings, dropping only genuinely
+     * empty ones.
+     *
+     * A header name made up entirely of digits (e.g. "123", a valid
+     * RFC 9110 token) arrives here as an `int` array key: PHP itself
+     * coerces a canonical-integer string used as an array key into an
+     * int, before this method ever sees it. Casting the key back to a
+     * string recovers the original header name losslessly — PHP
+     * guarantees `(string) (int) $s === $s` for exactly the strings it
+     * coerces this way — instead of silently dropping a real header.
+     *
+     * An empty string is still rejected: that is the actual malformed
+     * input this method exists to guard against (otherwise, the worker
+     * might be crashed) — @see: <https://git.io/JzjgJ>. Every PHP array
+     * key is either an int or a string, so `(string) $key` is always
+     * safe.
      *
      * @param array<array-key, array<array-key, string>> $headers
      * @return HeadersList
      */
     private function filterHeaders(array $headers): array
     {
-        foreach ($headers as $key => $_) {
-            if (!\is_string($key) || $key === '') {
-                // ignore invalid header names or values (otherwise, the worker might be crashed)
-                // @see: <https://git.io/JzjgJ>
-                unset($headers[$key]);
+        $result = [];
+
+        foreach ($headers as $key => $value) {
+            $key = (string) $key;
+
+            if ($key === '') {
+                continue;
             }
+
+            $result[$key] = $value;
         }
 
-        /** @var HeadersList $headers */
-        return $headers;
+        /** @var HeadersList $result */
+        return $result;
     }
 
     /**
