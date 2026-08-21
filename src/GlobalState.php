@@ -43,7 +43,10 @@ final class GlobalState
                 : $parts['host'];
         }
         foreach ($request->headers as $key => $value) {
-            $key = \strtoupper(\str_replace('-', '_', $key));
+            // $key may be an int here: a purely-numeric header name is
+            // coerced into an int array key by PHP (see HeadersList in
+            // Request.php), but str_replace()/strtoupper() require a string.
+            $key = \strtoupper(\str_replace('-', '_', (string) $key));
 
             if ($key == 'CONTENT_TYPE' || $key == 'CONTENT_LENGTH') {
                 $server[$key] = \implode(', ', $value);

@@ -49,12 +49,25 @@ final class HttpWorkerTest extends TestCase
             \array_merge(self::REQUIRED_PAYLOAD_DATA, [
                 'headers' => [
                     'Content-Type' => ['application/x-www-form-urlencoded'],
-                    111 => ['invalid-non-string-key'],
+                    // A purely-numeric header name (e.g. "111") is a
+                    // valid RFC 9110 token; PHP itself coerces it into
+                    // an int array key on the way in, which is why this
+                    // arrives as int(111) rather than the string "111".
+                    // filterHeaders() must recover it, not drop it.
+                    111 => ['numeric-header-name'],
                     '' => ['invalid-empty-string-key'],
                 ],
             ]),
             \array_merge(self::REQUIRED_REQUEST_DATA, [
-                'headers' => ['Content-Type' => ['application/x-www-form-urlencoded']],
+                'headers' => [
+                    'Content-Type' => ['application/x-www-form-urlencoded'],
+                    // Written as an int key on purpose: PHP coerces a
+                    // canonical-integer string key back to int the moment
+                    // it's used as an array key, so filterHeaders() cannot
+                    // hand back a string "111" here — only preserve the
+                    // header instead of dropping it. See HttpWorker.php.
+                    111 => ['numeric-header-name'],
+                ],
             ]),
         ];
         yield [
