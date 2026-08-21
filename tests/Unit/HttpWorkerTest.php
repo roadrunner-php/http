@@ -61,7 +61,12 @@ final class HttpWorkerTest extends TestCase
             \array_merge(self::REQUIRED_REQUEST_DATA, [
                 'headers' => [
                     'Content-Type' => ['application/x-www-form-urlencoded'],
-                    '111' => ['numeric-header-name'],
+                    // Written as an int key on purpose: PHP coerces a
+                    // canonical-integer string key back to int the moment
+                    // it's used as an array key, so filterHeaders() cannot
+                    // hand back a string "111" here — only preserve the
+                    // header instead of dropping it. See HttpWorker.php.
+                    111 => ['numeric-header-name'],
                 ],
             ]),
         ];

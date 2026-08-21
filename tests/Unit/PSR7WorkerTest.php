@@ -60,6 +60,26 @@ final class PSR7WorkerTest extends TestCase
                     'HTTP_HOST' =>   'localhost',
                 ],
             ],
+            [
+                // A purely-numeric header name arrives as an int array
+                // key (see HeadersList in Request.php). Both withHeader()
+                // in PSR7Worker and the $_SERVER key building in
+                // GlobalState must cast it back to string themselves, or
+                // this throws a TypeError under strict_types.
+                [
+                    'Content-Type' => ['application/json'],
+                    111 => ['numeric-header-name'],
+                ],
+                [
+                    'REQUEST_URI' => 'http://localhost',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                    'REQUEST_METHOD' => 'GET',
+                    'HTTP_USER_AGENT' => '',
+                    'CONTENT_TYPE' => 'application/json',
+                    'HTTP_111' => 'numeric-header-name',
+                    'HTTP_HOST' =>   'localhost',
+                ],
+            ],
         ];
 
         $_SERVER = [];
