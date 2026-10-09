@@ -13,6 +13,7 @@ use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\WorkerInterface;
 use Testo\Assert;
 use Testo\Data\DataProvider;
+use Testo\Data\DataSet;
 use Testo\Expect;
 use Testo\Lifecycle\AfterTest;
 use Testo\Test;
@@ -297,6 +298,33 @@ final class HttpWorkerTest
         $worker = new HttpWorker($worker);
 
         $worker->respond(200, 'foo', ['Content-Type' => ['application/x-www-form-urlencoded']]);
+    }
+
+    public function testGetWorkerReturnsWrappedWorker(): void
+    {
+        $worker = \Mockery::mock(WorkerInterface::class);
+
+        Assert::same((new HttpWorker($worker))->getWorker(), $worker);
+    }
+
+    #[DataSet([true, ['Hel', 'lo', ''], [false, false, true]], 'ended stream gets a closing frame')]
+    #[DataSet([false, ['Hel', 'lo'], [false, false]], 'open stream gets no empty frame')]
+    public function testRespondStreamThroughNonStreamWorker(bool $endOfStream, array $bodies, array $eos): void
+    {
+        $sent = [];
+        $worker = \Mockery::mock(WorkerInterface::class);
+        $worker->shouldReceive('getPayload')->andReturn(null);
+        $worker->shouldReceive('respond')->andReturnUsing(static function (Payload $payload) use (&$sent): void {
+            $sent[] = $payload;
+        });
+
+        (new HttpWorker($worker))->respond(200, (static function (): \Generator {
+            yield 'Hel';
+            yield 'lo';
+        })(), endOfStream: $endOfStream);
+
+        Assert::same(\array_map(static fn(Payload $p): string => $p->body, $sent), $bodies);
+        Assert::same(\array_map(static fn(Payload $p): bool => $p->eos, $sent), $eos);
     }
 
     #[AfterTest]
