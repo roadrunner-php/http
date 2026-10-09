@@ -238,7 +238,7 @@ final class HttpWorkerTest extends TestCase
 
     public function testEmptyBodyShouldBeConvertedIntoEmptyArrayWithParsedTrue(): void
     {
-        $request = self::createProtoRequest(\array_merge(self::REQUIRED_REQUEST_DATA, ['parsed' => true]));
+        $request = self::createProtoRequest(\array_merge(self::REQUIRED_PAYLOAD_DATA, ['parsed' => true]));
 
         $worker = $this->createMock(WorkerInterface::class);
         $worker->expects($this->once())
