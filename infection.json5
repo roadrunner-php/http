@@ -1,0 +1,19 @@
+{
+    "$schema": "https://raw.githubusercontent.com/infection/infection/0.35.6/resources/schema.json",
+    "source": {
+        "directories": ["src"]
+    },
+    "testFramework": "testo",
+    // Feature tests start a server on a fixed port: parallel mutant runs collide on it, and a
+    // timed-out run leaves the server running and fails every later run.
+    "testFrameworkOptions": "--suite=Unit",
+    "tmpDir": "runtime",
+    "timeout": 10,
+    "logs": {
+        "text": "runtime/infection.log",
+        "github": true,
+        "stryker": {
+            "report": "4.x"
+        }
+    }
+}
