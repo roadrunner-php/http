@@ -1,9 +1,20 @@
+# Line-ending normalization for text files.
 * text=auto
 
-/.*                     export-ignore
-/tests                  export-ignore
-/testo.php              export-ignore
-/psalm.*                export-ignore
-/psalm-baseline.xml     export-ignore
-/infection.*            export-ignore
-/rector.php             export-ignore
+# PHP-aware hunk headers in `git diff`.
+*.php diff=php
+
+# List-like manifests: concurrent additions to the same list merge instead of conflicting.
+/composer.json merge=union
+
+# Default: nothing goes into the dist archive. Re-include only what the installed package needs.
+* export-ignore
+
+# Manifest and top-level documentation.
+/composer.json   -export-ignore
+/LICENSE         -export-ignore
+/README.md       -export-ignore
+
+# Autoloaded source code.
+/src             -export-ignore
+/src/**          -export-ignore
