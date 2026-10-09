@@ -7,7 +7,6 @@
     resolveFromConfigFile="true"
     findUnusedBaselineEntry="false"
     findUnusedCode="false"
-    ensureOverrideAttribute="false"
 >
     <issueHandlers>
         <RedundantConditionGivenDocblockType errorLevel="suppress" />
