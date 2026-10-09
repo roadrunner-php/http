@@ -62,11 +62,7 @@ final class PSR7WorkerTest
                 ],
             ],
             [
-                // A purely-numeric header name arrives as an int array
-                // key (see HeadersList in Request.php). Both withHeader()
-                // in PSR7Worker and the $_SERVER key building in
-                // GlobalState must cast it back to string themselves, or
-                // this throws a TypeError under strict_types.
+                // A numeric header name decodes to an int key.
                 [
                     'Content-Type' => ['application/json'],
                     111 => ['numeric-header-name'],

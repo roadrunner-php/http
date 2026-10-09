@@ -50,6 +50,18 @@ final class GlobalStateTest
                 'HTTP_HOST'          => 'roadrunner.dev:8080',
             ],
         ];
+
+        yield [
+            new Request(headers: [111 => ['numeric-header-name']]),
+            [
+                'REQUEST_URI'        => 'http://localhost',
+                'REMOTE_ADDR'        => '127.0.0.1',
+                'REQUEST_METHOD'     => 'GET',
+                'HTTP_USER_AGENT'    => '',
+                'HTTP_111'           => 'numeric-header-name',
+                'HTTP_HOST'          => 'localhost',
+            ],
+        ];
     }
 
     /**

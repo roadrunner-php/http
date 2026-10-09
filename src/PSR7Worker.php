@@ -128,9 +128,7 @@ class PSR7Worker implements PSR7WorkerInterface
         }
 
         foreach ($httpRequest->headers as $name => $value) {
-            // $name may be an int here: a purely-numeric header name is
-            // coerced into an int array key by PHP (see HeadersList in
-            // Request.php), but PSR-7 requires a string header name.
+            // A numeric header name is an int key, which strict types reject in withHeader().
             $request = $request->withHeader((string) $name, $value);
         }
 

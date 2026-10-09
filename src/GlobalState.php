@@ -43,9 +43,7 @@ final class GlobalState
                 : $parts['host'];
         }
         foreach ($request->headers as $key => $value) {
-            // $key may be an int here: a purely-numeric header name is
-            // coerced into an int array key by PHP (see HeadersList in
-            // Request.php), but str_replace()/strtoupper() require a string.
+            // A numeric header name is an int key, which strict types reject in str_replace().
             $key = \strtoupper(\str_replace('-', '_', (string) $key));
 
             if ($key == 'CONTENT_TYPE' || $key == 'CONTENT_LENGTH') {
