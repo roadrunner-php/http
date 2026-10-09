@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Tests\Http\Unit;
 
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
 use Spiral\RoadRunner\Http\GlobalState;
 use Spiral\RoadRunner\Http\Request;
+use Testo\Assert;
+use Testo\Data\DataProvider;
+use Testo\Test;
 
-final class GlobalStateTest extends TestCase
+#[Test]
+final class GlobalStateTest
 {
     /**
      * @return iterable<array{0: Request, 1: array<array-key, mixed>}>
@@ -60,12 +62,11 @@ final class GlobalStateTest extends TestCase
 
         $server = GlobalState::enrichServerVars($request);
 
-        $this->assertArrayHasKey('REQUEST_TIME', $server);
-        $this->assertArrayHasKey('REQUEST_TIME_FLOAT', $server);
+        Assert::array($server)->hasKeys('REQUEST_TIME', 'REQUEST_TIME_FLOAT');
 
         unset($server['REQUEST_TIME']);
         unset($server['REQUEST_TIME_FLOAT']);
 
-        $this->assertEquals($server, $expected);
+        Assert::equals($server, $expected);
     }
 }

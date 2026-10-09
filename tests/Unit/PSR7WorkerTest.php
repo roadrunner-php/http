@@ -5,19 +5,20 @@ declare(strict_types=1);
 namespace Spiral\RoadRunner\Tests\Http\Unit;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\RunClassInSeparateProcess;
-use PHPUnit\Framework\TestCase;
 use Spiral\Goridge\Frame;
 use Spiral\RoadRunner\Http\GlobalState;
 use Spiral\RoadRunner\Http\PSR7Worker;
 use Spiral\RoadRunner\Tests\Http\Unit\Stub\TestRelay;
 use Spiral\RoadRunner\Worker;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Lifecycle\AfterTest;
+use Testo\Test;
 
-#[CoversClass(PSR7Worker::class)]
-#[CoversClass(GlobalState::class)]
-#[RunClassInSeparateProcess]
-final class PSR7WorkerTest extends TestCase
+#[Covers(PSR7Worker::class)]
+#[Covers(GlobalState::class)]
+#[Test]
+final class PSR7WorkerTest
 {
     public function testStateServerLeak(): void
     {
@@ -84,10 +85,11 @@ final class PSR7WorkerTest extends TestCase
             unset($_SERVER['REQUEST_TIME']);
             unset($_SERVER['REQUEST_TIME_FLOAT']);
 
-            self::assertEquals($expectedServer, $_SERVER);
+            Assert::equals($_SERVER, $expectedServer);
         }
     }
 
+    #[AfterTest]
     protected function tearDown(): void
     {
         // Clean all extra output buffers

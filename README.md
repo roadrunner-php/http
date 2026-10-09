@@ -53,7 +53,7 @@ vendor/bin/rr get
 
 Ensure that your server is configured with the following PHP versions and extensions:
 
-- PHP >=8.1
+- PHP >=8.2
 - ext-protobuf: This extension is optional but **highly recommended for installation**.
   Without it, performance may be up to 50% lower.
 - RoadRunner ^3.0

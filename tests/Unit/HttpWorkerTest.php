@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Tests\Http\Unit;
 
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
 use RoadRunner\HTTP\DTO\V1\HeaderValue;
 use RoadRunner\HTTP\DTO\V1\Response;
 use Spiral\Goridge\Frame;
@@ -13,8 +11,14 @@ use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Http\Request;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\WorkerInterface;
+use Testo\Assert;
+use Testo\Data\DataProvider;
+use Testo\Expect;
+use Testo\Lifecycle\AfterTest;
+use Testo\Test;
 
-final class HttpWorkerTest extends TestCase
+#[Test]
+final class HttpWorkerTest
 {
     private const REQUIRED_PAYLOAD_DATA = [
         'rawQuery' => 'first=value&arr[]=foo+bar&arr[]=baz',
@@ -198,14 +202,12 @@ final class HttpWorkerTest extends TestCase
     #[DataProvider('requestDataProvider')]
     public function testWaitRequestFromArray(array $header, array $expected): void
     {
-        $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects($this->once())
-            ->method('waitPayload')
-            ->willReturn(new Payload('foo', \json_encode($header)));
+        $worker = \Mockery::mock(WorkerInterface::class)->shouldIgnoreMissing();
+        $worker->shouldReceive('waitPayload')->once()->andReturn(new Payload('foo', \json_encode($header)));
 
         $worker = new HttpWorker($worker);
 
-        $this->assertEquals(new Request(...$expected), $worker->waitRequest());
+        Assert::equals($worker->waitRequest(), new Request(...$expected));
     }
 
     #[DataProvider('requestDataProvider')]
@@ -213,50 +215,43 @@ final class HttpWorkerTest extends TestCase
     {
         $request = self::createProtoRequest($header);
 
-        $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects($this->once())
-            ->method('waitPayload')
-            ->willReturn(new Payload('foo', $request->serializeToString()));
+        $worker = \Mockery::mock(WorkerInterface::class)->shouldIgnoreMissing();
+        $worker->shouldReceive('waitPayload')->once()->andReturn(new Payload('foo', $request->serializeToString()));
 
         $worker = new HttpWorker($worker);
 
-        $this->assertEquals(new Request(...$expected), $worker->waitRequest());
+        Assert::equals($worker->waitRequest(), new Request(...$expected));
     }
 
     #[DataProvider('emptyRequestDataProvider')]
     public function testWaitRequestWithEmptyData(?Payload $payload): void
     {
-        $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects($this->once())
-            ->method('waitPayload')
-            ->willReturn($payload);
+        $worker = \Mockery::mock(WorkerInterface::class)->shouldIgnoreMissing();
+        $worker->shouldReceive('waitPayload')->once()->andReturn($payload);
 
         $worker = new HttpWorker($worker);
 
-        $this->assertEquals(null, $worker->waitRequest());
+        Assert::equals($worker->waitRequest(), null);
     }
 
     public function testEmptyBodyShouldBeConvertedIntoEmptyArrayWithParsedTrue(): void
     {
         $request = self::createProtoRequest(\array_merge(self::REQUIRED_PAYLOAD_DATA, ['parsed' => true]));
 
-        $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects($this->once())
-            ->method('waitPayload')
-            ->willReturn(new Payload('', $request->serializeToString()));
+        $worker = \Mockery::mock(WorkerInterface::class)->shouldIgnoreMissing();
+        $worker->shouldReceive('waitPayload')->once()->andReturn(new Payload('', $request->serializeToString()));
 
         $worker = new HttpWorker($worker);
 
         $request = $worker->waitRequest();
-        $this->assertSame([], $request->getParsedBody());
+        Assert::same($request->getParsedBody(), []);
     }
 
     public function testRespondUnableToSendBodyWithInfoStatusException(): void
     {
-        $worker = new HttpWorker($this->createMock(WorkerInterface::class));
+        $worker = new HttpWorker(\Mockery::mock(WorkerInterface::class)->shouldIgnoreMissing());
 
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unable to send a body with informational status code.');
+        Expect::exception(\InvalidArgumentException::class)->withMessageContaining('Unable to send a body with informational status code.');
         $worker->respond(100, 'foo');
     }
 
@@ -267,10 +262,8 @@ final class HttpWorkerTest extends TestCase
             'headers' => ['Content-Type' => new HeaderValue(['value' => ['application/x-www-form-urlencoded']])],
         ]);
 
-        $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects($this->once())
-            ->method('respond')
-            ->with(new Payload('foo', $expectedHeader->serializeToString()), Frame::CODEC_PROTO);
+        $worker = \Mockery::mock(WorkerInterface::class)->shouldIgnoreMissing();
+        $worker->shouldReceive('respond')->once()->with(\Mockery::isEqual(new Payload('foo', $expectedHeader->serializeToString())), Frame::CODEC_PROTO, \Mockery::andAnyOtherArgs());
 
         (new \ReflectionProperty(HttpWorker::class, 'codec'))->setValue(Frame::CODEC_PROTO);
         $worker = new HttpWorker($worker);
@@ -283,10 +276,8 @@ final class HttpWorkerTest extends TestCase
     {
         $expectedHeader = new Response(['status' => 200, 'headers' => $expected]);
 
-        $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects($this->once())
-            ->method('respond')
-            ->with(new Payload('foo', $expectedHeader->serializeToString()), Frame::CODEC_PROTO);
+        $worker = \Mockery::mock(WorkerInterface::class)->shouldIgnoreMissing();
+        $worker->shouldReceive('respond')->once()->with(\Mockery::isEqual(new Payload('foo', $expectedHeader->serializeToString())), Frame::CODEC_PROTO, \Mockery::andAnyOtherArgs());
 
         (new \ReflectionProperty(HttpWorker::class, 'codec'))->setValue(Frame::CODEC_PROTO);
         $worker = new HttpWorker($worker);
@@ -296,13 +287,11 @@ final class HttpWorkerTest extends TestCase
 
     public function testRespondWithJsonCodec(): void
     {
-        $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects($this->once())
-            ->method('respond')
-            ->with(new Payload('foo', \json_encode([
-                'status' => 200,
-                'headers' => ['Content-Type' => ['application/x-www-form-urlencoded']],
-            ])), Frame::CODEC_JSON);
+        $worker = \Mockery::mock(WorkerInterface::class)->shouldIgnoreMissing();
+        $worker->shouldReceive('respond')->once()->with(\Mockery::isEqual(new Payload('foo', \json_encode([
+            'status' => 200,
+            'headers' => ['Content-Type' => ['application/x-www-form-urlencoded']],
+        ]))), Frame::CODEC_JSON, \Mockery::andAnyOtherArgs());
 
         (new \ReflectionProperty(HttpWorker::class, 'codec'))->setValue(Frame::CODEC_JSON);
         $worker = new HttpWorker($worker);
@@ -310,6 +299,7 @@ final class HttpWorkerTest extends TestCase
         $worker->respond(200, 'foo', ['Content-Type' => ['application/x-www-form-urlencoded']]);
     }
 
+    #[AfterTest]
     protected function tearDown(): void
     {
         (new \ReflectionProperty(HttpWorker::class, 'codec'))->setValue(null);
