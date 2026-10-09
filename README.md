@@ -14,6 +14,7 @@
 
 [![Psalm Level](https://shepherd.dev/github/roadrunner-php/http/level.svg)](https://shepherd.dev/github/roadrunner-php/http)
 [![Type Coverage](https://shepherd.dev/github/roadrunner-php/http/coverage.svg)](https://shepherd.dev/github/roadrunner-php/http)
+[![Mutation testing badge](https://img.shields.io/endpoint?style=flat&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Froadrunner-php%2Fhttp%2F4.x)](https://dashboard.stryker-mutator.io/reports/github.com/roadrunner-php/http/4.x)
 
 </div>
 
