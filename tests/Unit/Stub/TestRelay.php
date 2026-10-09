@@ -54,6 +54,7 @@ final class TestRelay extends Relay
             => \substr($frame->payload, $frame->options[0]), $this->received));
     }
 
+    #[\Override]
     public function waitFrame(): Frame
     {
         if ($this->frames === []) {
@@ -63,11 +64,13 @@ final class TestRelay extends Relay
         return \array_shift($this->frames);
     }
 
+    #[\Override]
     public function send(Frame $frame): void
     {
         $this->received[] = $frame;
     }
 
+    #[\Override]
     public function hasFrame(): bool
     {
         return $this->frames !== [];

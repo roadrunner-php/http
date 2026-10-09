@@ -46,6 +46,7 @@ class PSR7Worker implements PSR7WorkerInterface
         $this->httpWorker = new HttpWorker($worker);
     }
 
+    #[\Override]
     public function getWorker(): WorkerInterface
     {
         return $this->httpWorker->getWorker();
@@ -61,6 +62,7 @@ class PSR7Worker implements PSR7WorkerInterface
      *
      * @throws \JsonException
      */
+    #[\Override]
     public function waitRequest(bool $populateServer = true): ?ServerRequestInterface
     {
         $httpRequest = $this->httpWorker->waitRequest();
@@ -82,6 +84,7 @@ class PSR7Worker implements PSR7WorkerInterface
      *
      * @throws \JsonException
      */
+    #[\Override]
     public function respond(ResponseInterface $response): void
     {
         $this->httpWorker->respond(

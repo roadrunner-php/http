@@ -46,6 +46,7 @@ class HttpWorker implements HttpWorkerInterface
         private readonly WorkerInterface $worker,
     ) {}
 
+    #[\Override]
     public function getWorker(): WorkerInterface
     {
         return $this->worker;
@@ -54,6 +55,7 @@ class HttpWorker implements HttpWorkerInterface
     /**
      * @throws \JsonException
      */
+    #[\Override]
     public function waitRequest(): ?Request
     {
         $payload = $this->worker->waitPayload();
@@ -84,6 +86,7 @@ class HttpWorker implements HttpWorkerInterface
      * @param array<array-key, array<array-key, string>> $headers
      * @throws \JsonException
      */
+    #[\Override]
     public function respond(int $status, string|\Generator $body = '', array $headers = [], bool $endOfStream = true): void
     {
         if ($status < 200 && $status >= 100 && $body !== '') {
