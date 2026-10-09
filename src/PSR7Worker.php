@@ -128,7 +128,8 @@ class PSR7Worker implements PSR7WorkerInterface
         }
 
         foreach ($httpRequest->headers as $name => $value) {
-            $request = $request->withHeader($name, $value);
+            // A numeric header name is an int key, which strict types reject in withHeader().
+            $request = $request->withHeader((string) $name, $value);
         }
 
         if ($httpRequest->parsed) {

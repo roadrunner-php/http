@@ -54,12 +54,16 @@ final class HttpWorkerTest
             \array_merge(self::REQUIRED_PAYLOAD_DATA, [
                 'headers' => [
                     'Content-Type' => ['application/x-www-form-urlencoded'],
-                    111 => ['invalid-non-string-key'],
+                    // A numeric header name decodes to an int key and must survive.
+                    111 => ['numeric-header-name'],
                     '' => ['invalid-empty-string-key'],
                 ],
             ]),
             \array_merge(self::REQUIRED_REQUEST_DATA, [
-                'headers' => ['Content-Type' => ['application/x-www-form-urlencoded']],
+                'headers' => [
+                    'Content-Type' => ['application/x-www-form-urlencoded'],
+                    111 => ['numeric-header-name'],
+                ],
             ]),
         ];
         yield [

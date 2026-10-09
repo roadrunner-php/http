@@ -17,7 +17,8 @@ use JetBrains\PhpStorm\Immutable;
  *      mime:       string
  * }
  *
- * @psalm-type HeadersList = array<non-empty-string, array<array-key, string>>
+ * An int key is a numeric header name such as "123": PHP coerces it on insertion.
+ * @psalm-type HeadersList = array<int|non-empty-string, array<array-key, string>>
  * @psalm-type AttributesList = array<string, mixed>
  * @psalm-type QueryArgumentsList = array
  * @psalm-type CookiesList = array<string, string>

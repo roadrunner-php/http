@@ -205,20 +205,15 @@ class HttpWorker implements HttpWorkerInterface
     }
 
     /**
-     * Remove all non-string and empty-string keys
+     * Drops the empty header name: PSR-7 `withHeader()` rejects it, which would crash the worker.
+     * Int keys are kept: PHP stores a numeric header name such as "123" as one.
      *
      * @param array<array-key, array<array-key, string>> $headers
      * @return HeadersList
      */
     private function filterHeaders(array $headers): array
     {
-        foreach ($headers as $key => $_) {
-            if (!\is_string($key) || $key === '') {
-                // ignore invalid header names or values (otherwise, the worker might be crashed)
-                // @see: <https://git.io/JzjgJ>
-                unset($headers[$key]);
-            }
-        }
+        unset($headers['']);
 
         /** @var HeadersList $headers */
         return $headers;

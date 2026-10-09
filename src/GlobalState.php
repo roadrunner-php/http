@@ -43,7 +43,8 @@ final class GlobalState
                 : $parts['host'];
         }
         foreach ($request->headers as $key => $value) {
-            $key = \strtoupper(\str_replace('-', '_', $key));
+            // A numeric header name is an int key, which strict types reject in str_replace().
+            $key = \strtoupper(\str_replace('-', '_', (string) $key));
 
             if ($key == 'CONTENT_TYPE' || $key == 'CONTENT_LENGTH') {
                 $server[$key] = \implode(', ', $value);

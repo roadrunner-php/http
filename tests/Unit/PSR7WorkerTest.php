@@ -69,6 +69,22 @@ final class PSR7WorkerTest
                     'HTTP_HOST' =>   'localhost',
                 ],
             ],
+            [
+                // A numeric header name decodes to an int key.
+                [
+                    'Content-Type' => ['application/json'],
+                    111 => ['numeric-header-name'],
+                ],
+                [
+                    'REQUEST_URI' => 'http://localhost',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                    'REQUEST_METHOD' => 'GET',
+                    'HTTP_USER_AGENT' => '',
+                    'CONTENT_TYPE' => 'application/json',
+                    'HTTP_111' => 'numeric-header-name',
+                    'HTTP_HOST' =>   'localhost',
+                ],
+            ],
         ];
 
         $_SERVER = [];
