@@ -2,7 +2,7 @@
 
 /.*                     export-ignore
 /tests                  export-ignore
-/phpunit.xml*           export-ignore
+/testo.php              export-ignore
 /psalm.*                export-ignore
 /psalm-baseline.xml     export-ignore
 /infection.*            export-ignore

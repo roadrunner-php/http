@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Tests\Http\Unit;
 
-use PHPUnit\Framework\TestCase;
 use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\Tests\Http\Unit\Stub\TestRelay;
 use Spiral\RoadRunner\Worker;
+use Testo\Assert;
+use Testo\Lifecycle\AfterTest;
+use Testo\Test;
 
-final class StreamResponseTest extends TestCase
+#[Test]
+final class StreamResponseTest
 {
     private TestRelay $relay;
     private Worker $worker;
@@ -24,9 +27,9 @@ final class StreamResponseTest extends TestCase
         $this->getRelay()
             ->addFrame(status: 200, body: 'Hello, World!', headers: ['Content-Type' => 'text/plain'], stream: true);
 
-        self::assertTrue($worker->hasPayload());
-        self::assertInstanceOf(Payload::class, $payload = $worker->waitPayload());
-        self::assertSame('Hello, World!', $payload->body);
+        Assert::true($worker->hasPayload());
+        Assert::instanceOf($payload = $worker->waitPayload(), Payload::class);
+        Assert::same($payload->body, 'Hello, World!');
     }
 
     /**
@@ -44,8 +47,8 @@ final class StreamResponseTest extends TestCase
             yield '!';
         })());
 
-        self::assertFalse($this->worker->hasPayload());
-        self::assertSame('Hello, World!', $this->getRelay()->getReceivedBody());
+        Assert::false($this->worker->hasPayload());
+        Assert::same($this->getRelay()->getReceivedBody(), 'Hello, World!');
     }
 
     public function testStopStreamResponse(): void
@@ -65,9 +68,10 @@ final class StreamResponseTest extends TestCase
             yield '!';
         })());
 
-        self::assertSame('Hello,', $this->getRelay()->getReceivedBody());
+        Assert::same($this->getRelay()->getReceivedBody(), 'Hello,');
     }
 
+    #[AfterTest]
     protected function tearDown(): void
     {
         unset($this->relay, $this->worker);

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Spiral\RoadRunner\Tests\Http\Feature;
 
-use PHPUnit\Framework\TestCase;
 use Spiral\Goridge\SocketRelay;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Http\HttpWorker;
@@ -14,8 +13,14 @@ use Spiral\RoadRunner\Tests\Http\Server\Command\BaseCommand;
 use Spiral\RoadRunner\Tests\Http\Server\Command\StreamStop;
 use Spiral\RoadRunner\Tests\Http\Server\ServerRunner;
 use Spiral\RoadRunner\Worker;
+use Testo\Assert;
+use Testo\Expect;
+use Testo\Lifecycle\AfterTest;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 
-class StreamResponseTest extends TestCase
+#[Test]
+final class StreamResponseTest
 {
     private SocketRelay $relay;
     private Worker $worker;
@@ -30,7 +35,7 @@ class StreamResponseTest extends TestCase
         $worker->respond(new Payload('Hello, World!'));
 
         \usleep(100_000);
-        self::assertSame('Hello, World!', \trim(ServerRunner::getBuffer()));
+        Assert::same(\trim(ServerRunner::getBuffer()), 'Hello, World!');
     }
 
     /**
@@ -50,7 +55,7 @@ class StreamResponseTest extends TestCase
         );
 
         \usleep(100_000);
-        self::assertSame(\implode("\n", $chunks), \trim(ServerRunner::getBuffer()));
+        Assert::same(\trim(ServerRunner::getBuffer()), \implode("\n", $chunks));
     }
 
     public function testStopStreamResponse(): void
@@ -78,14 +83,14 @@ class StreamResponseTest extends TestCase
 
 
         \usleep(100_000);
-        self::assertSame(\implode("\n", ['Hel', 'lo,']), \trim(ServerRunner::getBuffer()));
+        Assert::same(\trim(ServerRunner::getBuffer()), \implode("\n", ['Hel', 'lo,']));
     }
 
     public function testSend1xxWithBody(): void
     {
         $httpWorker = $this->makeHttpWorker();
 
-        $this->expectExceptionMessage('Unable to send a body with informational status code');
+        Expect::exception(\Throwable::class)->withMessageContaining('Unable to send a body with informational status code');
 
         $httpWorker->respond(
             103,
@@ -114,7 +119,7 @@ class StreamResponseTest extends TestCase
 
 
         \usleep(100_000);
-        self::assertSame(\implode("\n", ['Hel', 'lo,']), \trim(ServerRunner::getBuffer()));
+        Assert::same(\trim(ServerRunner::getBuffer()), \implode("\n", ['Hel', 'lo,']));
     }
 
     /**
@@ -136,30 +141,30 @@ class StreamResponseTest extends TestCase
             })(),
         );
 
-        $this->assertFalse($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
+        Assert::false($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
         $this->sendCommand(new StreamStop());
         \usleep(200_000);
-        $this->assertSame(\implode("\n", ['Hello', 'World!']), \trim(ServerRunner::getBuffer()));
-        $this->assertTrue($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
+        Assert::same(\trim(ServerRunner::getBuffer()), \implode("\n", ['Hello', 'World!']));
+        Assert::true($this->getWorker()->hasPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class));
 
         $this->getWorker()->getPayload(\Spiral\RoadRunner\Message\Command\StreamStop::class);
         $this->getWorker()->getPayload(GetProcessId::class);
 
-        $this->assertFalse($this->getWorker()->hasPayload());
+        Assert::false($this->getWorker()->hasPayload());
     }
 
+    #[BeforeTest]
     protected function setUp(): void
     {
-        parent::setUp();
         ServerRunner::start();
         ServerRunner::getBuffer();
     }
 
+    #[AfterTest]
     protected function tearDown(): void
     {
         unset($this->relay, $this->worker);
         ServerRunner::stop();
-        parent::tearDown();
     }
 
     private function getRelay(): SocketRelay
@@ -177,7 +182,7 @@ class StreamResponseTest extends TestCase
         return new HttpWorker($this->getWorker());
     }
 
-    private function sendCommand(BaseCommand $command)
+    private function sendCommand(BaseCommand $command): void
     {
         $this->getRelay()->send($command->getRequestFrame());
         \usleep(500_000);
