@@ -1,49 +1,64 @@
 {
-    "name": "spiral/roadrunner-http",
+    "name": "roadrunner/http",
     "type": "library",
-    "description": "RoadRunner: HTTP and PSR-7 worker",
+    "description": "PSR-7 HTTP worker for the RoadRunner application server",
+    "keywords": [
+        "roadrunner",
+        "http",
+        "psr-7",
+        "psr-17",
+        "worker",
+        "server"
+    ],
     "license": "MIT",
     "authors": [
         {
-            "name": "Anton Titov (wolfy-j)",
-            "email": "wolfy-j@spiralscout.com"
+            "name": "Anton Titov",
+            "homepage": "https://github.com/wolfy-j"
         },
         {
             "name": "Valery Piashchynski",
             "homepage": "https://github.com/rustatian"
         },
         {
-            "name": "Aleksei Gagarin (roxblnfk)",
+            "name": "Aleksei Gagarin",
             "homepage": "https://github.com/roxblnfk"
         },
         {
-            "name": "Pavel Buchnev (butschster)",
-            "email": "pavel.buchnev@spiralscout.com"
+            "name": "Pavel Buchnev",
+            "homepage": "https://github.com/butschster"
         },
         {
-            "name": "Maksim Smakouz (msmakouz)",
-            "email": "maksim.smakouz@spiralscout.com"
+            "name": "Maksim Smakouz",
+            "homepage": "https://github.com/msmakouz"
         },
         {
             "name": "RoadRunner Community",
             "homepage": "https://github.com/roadrunner-server/roadrunner/graphs/contributors"
         }
     ],
-    "homepage": "https://spiral.dev/",
+    "homepage": "https://roadrunner.dev/",
     "support": {
-        "docs": "https://docs.roadrunner.dev",
+        "docs": "https://docs.roadrunner.dev/docs/http/http",
         "issues": "https://github.com/roadrunner-server/roadrunner/issues",
+        "source": "https://github.com/roadrunner-php/http",
         "forum": "https://forum.roadrunner.dev/",
         "chat": "https://discord.gg/V6EK4he"
     },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/roadrunner-server"
+        }
+    ],
     "require": {
         "php": ">=8.2",
         "ext-json": "*",
         "psr/http-factory": "^1.0.1",
         "psr/http-message": "^1.0.1 || ^2.0",
+        "roadrunner/api-dto": "^2.1",
+        "roadrunner/worker": "^3.8",
         "spiral/roadrunner": "^3.0",
-        "spiral/roadrunner-worker": "^3.7",
-        "roadrunner-php/roadrunner-api-dto": "^1.18 || ^2.0",
         "symfony/polyfill-php83": "^1.29"
     },
     "require-dev": {
@@ -57,6 +72,13 @@
         "testo/testo": "^0.10.55",
         "vimeo/psalm": "^6 || ^7"
     },
+    "replace": {
+        "spiral/roadrunner-http": "self.version"
+    },
+    "suggest": {
+        "ext-protobuf": "Provides Protocol Buffers support. Without it, performance will be lower.",
+        "roadrunner/cli": "Provides RoadRunner installation and management CLI tools"
+    },
     "autoload": {
         "psr-4": {
             "Spiral\\RoadRunner\\Http\\": "src"
@@ -66,16 +88,6 @@
         "psr-4": {
             "Spiral\\RoadRunner\\Tests\\Http\\": "tests"
         }
-    },
-    "funding": [
-        {
-            "type": "github",
-            "url": "https://github.com/sponsors/roadrunner-server"
-        }
-    ],
-    "suggest": {
-        "spiral/roadrunner-cli": "Provides RoadRunner installation and management CLI tools",
-        "ext-protobuf": "Provides Protocol Buffers support. Without it, performance will be lower."
     },
     "config": {
         "audit": {

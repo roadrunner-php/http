@@ -28,13 +28,13 @@ It turns requests served by RoadRunner into PSR-7 objects and sends PSR-7 respon
 ### Installation
 
 ```bash
-composer require spiral/roadrunner-http
+composer require roadrunner/http
 ```
 
-[![PHP](https://img.shields.io/packagist/php-v/spiral/roadrunner-http.svg?style=flat-square&logo=php)](https://packagist.org/packages/spiral/roadrunner-http)
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/spiral/roadrunner-http.svg?style=flat-square&logo=packagist)](https://packagist.org/packages/spiral/roadrunner-http)
-[![License](https://img.shields.io/packagist/l/spiral/roadrunner-http.svg?style=flat-square)](LICENSE)
-[![Total Downloads](https://img.shields.io/packagist/dt/spiral/roadrunner-http.svg?style=flat-square)](https://packagist.org/packages/spiral/roadrunner-http/stats)
+[![PHP](https://img.shields.io/packagist/php-v/roadrunner/http.svg?style=flat-square&logo=php)](https://packagist.org/packages/roadrunner/http)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/roadrunner/http.svg?style=flat-square&logo=packagist)](https://packagist.org/packages/roadrunner/http)
+[![License](https://img.shields.io/packagist/l/roadrunner/http.svg?style=flat-square)](LICENSE)
+[![Total Downloads](https://img.shields.io/packagist/dt/roadrunner/http.svg?style=flat-square)](https://packagist.org/packages/roadrunner/http/stats)
 
 The worker needs a [PSR-17 implementation](https://packagist.org/providers/psr/http-factory-implementation), for example
 `nyholm/psr7`, which is used in the examples below:
@@ -46,7 +46,7 @@ composer require nyholm/psr7
 The RoadRunner binary can be downloaded with the [RoadRunner CLI](https://github.com/roadrunner-php/cli):
 
 ```bash
-composer require spiral/roadrunner-cli --dev
+composer require roadrunner/cli --dev
 vendor/bin/rr get
 ```
 

@@ -3,7 +3,7 @@
     "release-type": "php",
     "packages": {
         ".": {
-            "package-name": "spiral/roadrunner-http",
+            "package-name": "roadrunner/http",
             "changelog-path": "/CHANGELOG.md"
         }
     },
