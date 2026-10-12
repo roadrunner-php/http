@@ -1,9 +1,7 @@
-/.*
+/.*/
 !/.github/
-!/.php-cs-fixer.dist.php
-!/.editorconfig
-!/.gitattributes
 /runtime/
 /vendor/
-/composer.lock
+/.env
 *.log
+/composer.lock
