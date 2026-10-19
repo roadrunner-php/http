@@ -57,8 +57,8 @@
         "psr/http-factory": "^1.0.1",
         "psr/http-message": "^1.0.1 || ^2.0",
         "roadrunner/api-dto": "^2.1",
+        "roadrunner/roadrunner": "^3.0",
         "roadrunner/worker": "^3.8",
-        "spiral/roadrunner": "^3.0",
         "symfony/polyfill-php83": "^1.29"
     },
     "require-dev": {
